@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thỏa thuận & Quyền riêng tư · New API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+  body { margin: 0; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; background: #F7F6FC; color: #191932; }
+  a { color: #5B4BF0; text-decoration: none; }
+  a:hover { color: #3D2ED6; }
+  h1, h2, h3 { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; margin: 0; }
+  p { margin: 0; }
+</style>
+</head>
+<body>
+<div style="width: 1440px; background: #F7F6FC; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 32px; padding: 18px 64px; background: rgba(255,255,255,0.88); border-bottom: 1px solid #EAE7F8">
+    <div style="display: flex; align-items: center; gap: 40px">
+      <div style="display: flex; align-items: center; gap: 11px">
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: linear-gradient(135deg, #6C5CF7 0%, #C044E8 50%, #FF7A59 100%); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4l2.5-6 3 12L16 12h4"></path></svg></div>
+        <span style="font-family: 'Outfit', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.02em">New API</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px">
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Trang chủ</span>
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Giá cả</span>
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Xếp hạng</span>
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Tài liệu</span>
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Giới thiệu</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span style="padding: 10px 18px; border-radius: 999px; color: #3A3856; font-size: 14px; font-weight: 600">Đăng nhập</span>
+      <span style="padding: 11px 22px; border-radius: 999px; background: #191932; color: #FFFFFF; font-size: 14px; font-weight: 600; box-shadow: 0 6px 18px rgba(25,25,50,0.18)">Bắt đầu</span>
+    </div>
+  </div>
+  <div style="padding: 54px 64px 34px; background: radial-gradient(900px 340px at 20% 0%, #E6E0FF 0%, rgba(230,224,255,0) 65%), radial-gradient(700px 300px at 88% 10%, #FFE3D6 0%, rgba(255,227,214,0) 62%), #F7F6FC">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #7C5CF0">Pháp lý</span>
+      <h1 style="font-size: 44px; line-height: 1.1; font-weight: 800; letter-spacing: -0.035em">Thỏa thuận người dùng</h1>
+      <span style="font-size: 13.5px; color: #8F8CAB">Cập nhật lần cuối: 01/09/2026</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 28px; padding: 0 64px 64px">
+    <div style="display: flex; flex-direction: column; gap: 6px; align-self: flex-start; padding: 22px; border-radius: 26px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <span style="padding: 0 12px 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #B0ACC9">Mục lục</span>
+      <span style="padding: 10px 12px; border-radius: 12px; background: #EFEBFF; font-size: 13.5px; font-weight: 700; color: #4A38D4">1. Chấp nhận điều khoản</span>
+      <span style="padding: 10px 12px; border-radius: 12px; font-size: 13.5px; color: #56546F">2. Tài khoản và bảo mật</span>
+      <span style="padding: 10px 12px; border-radius: 12px; font-size: 13.5px; color: #56546F">3. Sử dụng dịch vụ</span>
+      <span style="padding: 10px 12px; border-radius: 12px; font-size: 13.5px; color: #56546F">4. Thanh toán và hạn mức</span>
+      <span style="padding: 10px 12px; border-radius: 12px; font-size: 13.5px; color: #56546F">5. Nội dung và trách nhiệm</span>
+      <span style="padding: 10px 12px; border-radius: 12px; font-size: 13.5px; color: #56546F">6. Chấm dứt</span>
+      <span style="padding: 10px 12px; border-radius: 12px; font-size: 13.5px; color: #56546F">7. Liên hệ</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 26px; padding: 40px 44px; border-radius: 28px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">1. Chấp nhận điều khoản</h2>
+        <p style="font-size: 15.5px; line-height: 1.8; color: #56546F">Khi tạo tài khoản hoặc sử dụng dịch vụ, bạn xác nhận đã đọc và đồng ý với toàn bộ nội dung của thỏa thuận này. [NỘI DUNG DO QUẢN TRỊ VIÊN CẤU HÌNH TRONG CÀI ĐẶT HỆ THỐNG]</p>
+      </div>
+      <div style="height: 1px; background: #F4F1FC"></div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">2. Tài khoản và bảo mật</h2>
+        <p style="font-size: 15.5px; line-height: 1.8; color: #56546F">Bạn chịu trách nhiệm bảo quản khóa API và thông tin đăng nhập. Mọi yêu cầu phát sinh từ khóa của bạn được xem là do bạn thực hiện.</p>
+        <p style="font-size: 15.5px; line-height: 1.8; color: #56546F">Khuyến nghị bật xác thực hai lớp hoặc đăng ký Passkey cho tài khoản có quyền quản trị.</p>
+      </div>
+      <div style="height: 1px; background: #F4F1FC"></div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">3. Sử dụng dịch vụ</h2>
+        <p style="font-size: 15.5px; line-height: 1.8; color: #56546F">Không sử dụng dịch vụ cho mục đích vi phạm pháp luật, phát tán mã độc, hoặc vượt qua giới hạn kỹ thuật của hệ thống. [NỘI DUNG DO QUẢN TRỊ VIÊN CẤU HÌNH]</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 20px; background: #FAF9FE">
+        <span style="width: 38px; height: 38px; border-radius: 13px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C5CF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg></span>
+        <span style="font-size: 13.5px; line-height: 1.6; color: #56546F">Trang Chính sách quyền riêng tư dùng chung bố cục này, chỉ khác tiêu đề và nội dung.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 30px 64px; background: #FFFFFF; border-top: 1px solid #EDEAF9; display: flex; align-items: center; justify-content: space-between">
+    <span style="font-size: 12.5px; color: #8F8CAB">© 2026 <span style="color: #3A3856; font-weight: 600">New API</span>. Dự án mã nguồn mở của QuantumNous.</span>
+    <div style="display: flex; align-items: center; gap: 16px">
+      <span style="font-size: 12.5px; color: #8F8CAB">Thỏa thuận người dùng</span>
+      <span style="color: #D8D4EA">·</span>
+      <span style="font-size: 12.5px; color: #8F8CAB">Chính sách quyền riêng tư</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

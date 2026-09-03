@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chi tiết mô hình · New API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+  body { margin: 0; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; background: #F7F6FC; color: #191932; }
+  a { color: #5B4BF0; text-decoration: none; }
+  a:hover { color: #3D2ED6; }
+  h1, h2, h3 { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; margin: 0; }
+  p { margin: 0; }
+</style>
+</head>
+<body>
+<div style="width: 1440px; background: #F7F6FC; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 32px; padding: 18px 64px; background: rgba(255,255,255,0.88); border-bottom: 1px solid #EAE7F8">
+    <div style="display: flex; align-items: center; gap: 40px">
+      <div style="display: flex; align-items: center; gap: 11px">
+        <div style="width: 38px; height: 38px; border-radius: 13px; background: linear-gradient(135deg, #6C5CF7 0%, #C044E8 50%, #FF7A59 100%); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4l2.5-6 3 12L16 12h4"></path></svg></div>
+        <span style="font-family: 'Outfit', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.02em">New API</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px">
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Trang chủ</span>
+        <span style="padding: 8px 15px; border-radius: 999px; background: #EFEBFF; color: #4A38D4; font-size: 14px; font-weight: 600">Giá cả</span>
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Xếp hạng</span>
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Tài liệu</span>
+        <span style="padding: 8px 15px; border-radius: 999px; color: #5D5B78; font-size: 14px; font-weight: 500">Giới thiệu</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span style="padding: 10px 18px; border-radius: 999px; color: #3A3856; font-size: 14px; font-weight: 600">Đăng nhập</span>
+      <span style="padding: 11px 22px; border-radius: 999px; background: #191932; color: #FFFFFF; font-size: 14px; font-weight: 600; box-shadow: 0 6px 18px rgba(25,25,50,0.18)">Bắt đầu</span>
+    </div>
+  </div>
+  <div style="padding: 44px 64px 30px; background: radial-gradient(900px 340px at 20% 0%, #E6E0FF 0%, rgba(230,224,255,0) 65%), radial-gradient(700px 300px at 88% 10%, #FFE3D6 0%, rgba(255,227,214,0) 62%), #F7F6FC">
+    <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 22px">
+      <span style="font-size: 13px; color: #8F8CAB">Giá cả</span>
+      <span style="font-size: 13px; color: #D8D4EA">›</span>
+      <span style="font-size: 13px; font-weight: 600; color: #191932">gpt-4o-mini</span>
+    </div>
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 40px">
+      <div style="display: flex; align-items: center; gap: 18px">
+        <span style="width: 66px; height: 66px; border-radius: 22px; background: #E9E6F9; color: #3A3856; font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; display: flex; align-items: center; justify-content: center">O</span>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <h1 style="font-size: 40px; line-height: 1.1; font-weight: 800; letter-spacing: -0.03em">gpt-4o-mini</h1>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="padding: 5px 12px; border-radius: 999px; background: #EFEBFF; color: #4A38D4; font-size: 11.5px; font-weight: 700">OpenAI</span>
+            <span style="padding: 5px 12px; border-radius: 999px; background: #FFFFFF; color: #4A38D4; font-size: 11.5px; font-weight: 700">Theo token</span>
+            <span style="padding: 5px 12px; border-radius: 999px; background: #FFFFFF; color: #56546F; font-size: 11.5px; font-weight: 700">Ngữ cảnh 128K</span>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E4DEFA; color: #2C2A46; font-size: 13.5px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6889" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.4"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg><span>Sao chép tên mô hình</span></div>
+        <div style="display: flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 999px; background: linear-gradient(120deg, #6C5CF7 0%, #A93FEA 100%); color: #FFFFFF; font-size: 13.5px; font-weight: 700; box-shadow: 0 10px 22px rgba(108,92,247,0.28)"><span>Dùng trong Sân chơi</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; padding: 0 64px 24px">
+    <div style="display: flex; flex-direction: column; gap: 18px; padding: 28px; border-radius: 28px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <h2 style="font-size: 18px; font-weight: 700">Bảng giá</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 7px; padding: 20px; border-radius: 20px; background: #FAF9FE">
+          <span style="font-size: 12.5px; color: #8F8CAB">Đầu vào</span>
+          <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 22px; font-weight: 800; color: #191932">$0,15</span>
+          <span style="font-size: 12px; color: #8F8CAB">mỗi 1M token</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; padding: 20px; border-radius: 20px; background: #FAF9FE">
+          <span style="font-size: 12.5px; color: #8F8CAB">Đầu ra</span>
+          <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 22px; font-weight: 800; color: #191932">$0,60</span>
+          <span style="font-size: 12px; color: #8F8CAB">mỗi 1M token</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; padding: 20px; border-radius: 20px; background: #E7FBF3">
+          <span style="font-size: 12.5px; color: #12996C">Bộ nhớ đệm</span>
+          <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 22px; font-weight: 800; color: #12996C">$0,075</span>
+          <span style="font-size: 12px; color: #12996C">mỗi 1M token</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px">
+        <span style="font-size: 13px; font-weight: 700; color: #56546F">Ước tính chi phí</span>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 18px; background: #EFEBFF">
+          <span style="font-size: 13.5px; color: #4A38D4">10.000 token vào + 2.000 token ra</span>
+          <span style="margin-left: auto; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 16px; font-weight: 800; color: #4A38D4">$0,0027</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px; padding: 28px; border-radius: 28px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <h2 style="font-size: 18px; font-weight: 700">Hiệu năng 7 ngày</h2>
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13.5px; color: #56546F">Thời gian hoạt động</span><span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 15px; font-weight: 700; color: #12996C">99,98%</span></div>
+        <div style="display: flex; align-items: center; gap: 3px">
+          <span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #F0A72A"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #C9402A"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span><span style="flex-grow: 1; height: 34px; border-radius: 4px; background: #12B77E"></span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13.5px; color: #56546F">Độ trễ p50</span><span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 15px; font-weight: 700; color: #191932">612 ms</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13.5px; color: #56546F">Độ trễ p95</span><span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 15px; font-weight: 700; color: #191932">1.482 ms</span></div>
+        <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 13.5px; color: #56546F">Token đầu tiên</span><span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 15px; font-weight: 700; color: #191932">248 ms</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 0 64px 64px">
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 28px; border-radius: 28px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <h2 style="font-size: 18px; font-weight: 700">Gọi thử</h2>
+      <div style="padding: 22px; border-radius: 20px; background: #191932; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; line-height: 2; color: #A9A5CC">
+        <div><span style="color: #6C5CF7">curl</span> https://api.newapi.ai/v1/chat/completions \</div>
+        <div style="padding-left: 20px"><span style="color: #C044E8">-H</span> <span style="color: #35D6A4">"Authorization: Bearer sk-••••••••"</span> \</div>
+        <div style="padding-left: 20px"><span style="color: #C044E8">-d</span> <span style="color: #35D6A4">'{ "model": "gpt-4o-mini", "messages": [...] }'</span></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="padding: 5px 12px; border-radius: 999px; background: #EFEBFF; color: #4A38D4; font-size: 11.5px; font-weight: 700">chat</span>
+        <span style="padding: 5px 12px; border-radius: 999px; background: #EFEBFF; color: #4A38D4; font-size: 11.5px; font-weight: 700">responses</span>
+        <span style="padding: 5px 12px; border-radius: 999px; background: #F1EFFB; color: #6B6889; font-size: 11.5px; font-weight: 700">embedding</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 30px 64px; background: #FFFFFF; border-top: 1px solid #EDEAF9; display: flex; align-items: center; justify-content: space-between">
+    <span style="font-size: 12.5px; color: #8F8CAB">© 2026 <span style="color: #3A3856; font-weight: 600">New API</span>. Dự án mã nguồn mở của QuantumNous.</span>
+    <div style="display: flex; align-items: center; gap: 16px">
+      <span style="font-size: 12.5px; color: #8F8CAB">Thỏa thuận người dùng</span>
+      <span style="color: #D8D4EA">·</span>
+      <span style="font-size: 12.5px; color: #8F8CAB">Chính sách quyền riêng tư</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

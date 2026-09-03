@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bảng phong cách · New API</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+  body { margin: 0; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; background: #F7F6FC; color: #191932; }
+  a { color: #5B4BF0; text-decoration: none; }
+  a:hover { color: #3D2ED6; }
+  h1, h2, h3 { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; margin: 0; }
+  p { margin: 0; }
+</style>
+</head>
+<body>
+<div style="width: 1440px; padding: 56px 64px 64px; background: #F7F6FC; display: flex; flex-direction: column; gap: 44px">
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #7C5CF0">Hệ thống thiết kế</span>
+    <h1 style="font-size: 44px; font-weight: 800; letter-spacing: -0.035em">Bảng phong cách New API</h1>
+    <p style="font-size: 16px; line-height: 1.6; color: #56546F; max-width: 720px">Nền tảng dùng chung cho mọi trang được thiết kế lại. Mọi đợt sau đều lấy màu, chữ, bo góc và linh kiện từ đây.</p>
+  </div>
+
+  <!-- COLOR -->
+  <div style="display: flex; flex-direction: column; gap: 18px">
+    <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">Bảng màu</h2>
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 92px; border-radius: 22px; background: linear-gradient(135deg, #6C5CF7 0%, #C044E8 50%, #FF7A59 100%)"></div>
+        <span style="font-size: 13.5px; font-weight: 700">Gradient thương hiệu</span>
+        <span style="font-size: 12px; color: #8F8CAB">#6C5CF7 → #C044E8 → #FF7A59</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 92px; border-radius: 22px; background: #6C5CF7"></div>
+        <span style="font-size: 13.5px; font-weight: 700">Chính</span>
+        <span style="font-size: 12px; color: #8F8CAB">#6C5CF7</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 92px; border-radius: 22px; background: #FF7A59"></div>
+        <span style="font-size: 13.5px; font-weight: 700">Nhấn ấm</span>
+        <span style="font-size: 12px; color: #8F8CAB">#FF7A59</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 92px; border-radius: 22px; background: #12B77E"></div>
+        <span style="font-size: 13.5px; font-weight: 700">Thành công</span>
+        <span style="font-size: 12px; color: #8F8CAB">#12B77E</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 92px; border-radius: 22px; background: #F0A72A"></div>
+        <span style="font-size: 13.5px; font-weight: 700">Cảnh báo</span>
+        <span style="font-size: 12px; color: #8F8CAB">#F0A72A</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 92px; border-radius: 22px; background: #191932"></div>
+        <span style="font-size: 13.5px; font-weight: 700">Mực</span>
+        <span style="font-size: 12px; color: #8F8CAB">#191932</span>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 62px; border-radius: 18px; background: #F7F6FC; border: 1px solid #EDEAF9"></div>
+        <span style="font-size: 12px; color: #8F8CAB">Nền · #F7F6FC</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 62px; border-radius: 18px; background: #FFFFFF; border: 1px solid #EDEAF9"></div>
+        <span style="font-size: 12px; color: #8F8CAB">Thẻ · #FFFFFF</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 62px; border-radius: 18px; background: #EFEBFF"></div>
+        <span style="font-size: 12px; color: #8F8CAB">Tím nhạt · #EFEBFF</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 62px; border-radius: 18px; background: #FFF1E9"></div>
+        <span style="font-size: 12px; color: #8F8CAB">Cam nhạt · #FFF1E9</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 62px; border-radius: 18px; background: #E7FBF3"></div>
+        <span style="font-size: 12px; color: #8F8CAB">Lục nhạt · #E7FBF3</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="height: 62px; border-radius: 18px; background: #FFF7E0"></div>
+        <span style="font-size: 12px; color: #8F8CAB">Vàng nhạt · #FFF7E0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TYPE + RADIUS -->
+  <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 18px; padding: 32px; border-radius: 28px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">Chữ</h2>
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; align-items: baseline; gap: 18px">
+          <span style="width: 92px; font-size: 11.5px; font-weight: 700; color: #8F8CAB">H1 · 62/800</span>
+          <span style="font-family: 'Outfit', sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -0.035em">Outfit Display</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 18px">
+          <span style="width: 92px; font-size: 11.5px; font-weight: 700; color: #8F8CAB">H2 · 42/800</span>
+          <span style="font-family: 'Outfit', sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.03em">Tiêu đề mục</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 18px">
+          <span style="width: 92px; font-size: 11.5px; font-weight: 700; color: #8F8CAB">H3 · 20/700</span>
+          <span style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700">Tiêu đề thẻ</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 18px">
+          <span style="width: 92px; font-size: 11.5px; font-weight: 700; color: #8F8CAB">Body · 15–17</span>
+          <span style="font-size: 16px; line-height: 1.65; color: #56546F">Plus Jakarta Sans — thân bài, mô tả, nhãn biểu mẫu.</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 18px">
+          <span style="width: 92px; font-size: 11.5px; font-weight: 700; color: #8F8CAB">Mono</span>
+          <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 14px; font-weight: 600">$0.15/1M · sk-••••••••</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px; padding: 32px; border-radius: 28px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">Bo góc &amp; đổ bóng</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center">
+          <div style="width: 100%; height: 56px; border-radius: 12px; background: #EFEBFF"></div>
+          <span style="font-size: 11.5px; color: #8F8CAB">12px</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center">
+          <div style="width: 100%; height: 56px; border-radius: 16px; background: #EFEBFF"></div>
+          <span style="font-size: 11.5px; color: #8F8CAB">16px</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center">
+          <div style="width: 100%; height: 56px; border-radius: 24px; background: #EFEBFF"></div>
+          <span style="font-size: 11.5px; color: #8F8CAB">24px</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center">
+          <div style="width: 100%; height: 56px; border-radius: 999px; background: #EFEBFF"></div>
+          <span style="font-size: 11.5px; color: #8F8CAB">pill</span>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <div style="height: 62px; border-radius: 20px; background: #FFFFFF; border: 1px solid #EDEAF9; box-shadow: 0 8px 22px rgba(58,42,140,0.05); display: flex; align-items: center; justify-content: center; font-size: 12px; color: #8F8CAB">bóng nhẹ</div>
+        <div style="height: 62px; border-radius: 20px; background: #FFFFFF; border: 1px solid #EDEAF9; box-shadow: 0 26px 60px rgba(58,42,140,0.14); display: flex; align-items: center; justify-content: center; font-size: 12px; color: #8F8CAB">bóng nổi</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPONENTS -->
+  <div style="display: flex; flex-direction: column; gap: 18px">
+    <h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">Linh kiện</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 28px; border-radius: 26px; background: #FFFFFF; border: 1px solid #EDEAF9">
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: #8F8CAB">Nút</span>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+          <span style="padding: 13px 24px; border-radius: 999px; background: linear-gradient(120deg, #6C5CF7 0%, #A93FEA 100%); color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 10px 22px rgba(108,92,247,0.30)">Chính</span>
+          <span style="padding: 13px 22px; border-radius: 999px; background: #191932; color: #FFFFFF; font-size: 14px; font-weight: 600">Đậm</span>
+          <span style="padding: 13px 22px; border-radius: 999px; background: #FFFFFF; border: 1px solid #E4DEFA; color: #2C2A46; font-size: 14px; font-weight: 600">Viền</span>
+          <span style="padding: 13px 22px; border-radius: 999px; color: #6C5CF7; font-size: 14px; font-weight: 600">Ẩn</span>
+          <span style="padding: 13px 22px; border-radius: 999px; background: #F1EFFB; color: #B6B2CE; font-size: 14px; font-weight: 600">Khóa</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 28px; border-radius: 26px; background: #FFFFFF; border: 1px solid #EDEAF9">
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: #8F8CAB">Huy hiệu &amp; trạng thái</span>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 9px">
+          <span style="padding: 6px 13px; border-radius: 999px; background: #EFEBFF; color: #4A38D4; font-size: 12px; font-weight: 700">Theo token</span>
+          <span style="padding: 6px 13px; border-radius: 999px; background: #E7FBF3; color: #12996C; font-size: 12px; font-weight: 700">Hoạt động</span>
+          <span style="padding: 6px 13px; border-radius: 999px; background: #FFF7E0; color: #B87A0E; font-size: 12px; font-weight: 700">Chờ xử lý</span>
+          <span style="padding: 6px 13px; border-radius: 999px; background: #FFEAE4; color: #C9402A; font-size: 12px; font-weight: 700">Lỗi</span>
+          <span style="padding: 6px 13px; border-radius: 999px; background: #F1EFFB; color: #6B6889; font-size: 12px; font-weight: 700">Tắt</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; margin-top: 4px">
+          <div style="display: flex; align-items: center; padding: 3px; border-radius: 999px; background: #F5F3FD">
+            <span style="padding: 7px 15px; border-radius: 999px; background: #FFFFFF; color: #191932; font-size: 12.5px; font-weight: 700; box-shadow: 0 2px 6px rgba(25,25,50,0.08)">Thẻ</span>
+            <span style="padding: 7px 15px; border-radius: 999px; color: #6B6889; font-size: 12.5px; font-weight: 600">Bảng</span>
+          </div>
+          <div style="width: 46px; height: 26px; border-radius: 999px; background: #6C5CF7; display: flex; align-items: center; justify-content: flex-end; padding: 3px">
+            <span style="width: 20px; height: 20px; border-radius: 999px; background: #FFFFFF"></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 28px; border-radius: 26px; background: #FFFFFF; border: 1px solid #EDEAF9">
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: #8F8CAB">Biểu mẫu</span>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 13px 16px; border-radius: 16px; background: #FAF9FE; border: 1px solid #E9E5F8">
+          <span style="font-size: 14px; color: #A5A2BE">Trạng thái rỗng</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 13px 16px; border-radius: 16px; background: #FFFFFF; border: 1.6px solid #6C5CF7; box-shadow: 0 0 0 4px rgba(108,92,247,0.12)">
+          <span style="font-size: 14px; color: #3A3856">Đang nhập</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 13px 16px; border-radius: 16px; background: #FFFFFF; border: 1.6px solid #E86A50">
+          <span style="font-size: 14px; color: #C9402A">Giá trị không hợp lệ</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DATA SURFACES -->
+  <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px">
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 28px; border-radius: 26px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: #8F8CAB">Mục điều hướng</span>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 16px; background: #EFEBFF">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A38D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="2"></rect><rect x="14" y="3" width="7" height="5" rx="2"></rect><rect x="14" y="12" width="7" height="9" rx="2"></rect><rect x="3" y="16" width="7" height="5" rx="2"></rect></svg>
+          <span style="font-size: 14px; font-weight: 700; color: #4A38D4">Tổng quan</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 16px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6889" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="4"></circle><path d="M13 13.5 20 20.5"></path></svg>
+          <span style="font-size: 14px; font-weight: 500; color: #56546F">Khóa API</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 16px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6889" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+          <span style="font-size: 14px; font-weight: 500; color: #56546F">Nhật ký sử dụng</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; padding: 28px; border-radius: 26px; background: #FFFFFF; border: 1px solid #EDEAF9">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: #8F8CAB">Hàng bảng dữ liệu</span>
+      <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 0.8fr; gap: 12px; padding: 12px 16px; border-radius: 14px; background: #FAF9FE">
+        <span style="font-size: 11.5px; font-weight: 700; color: #8F8CAB">Mô hình</span>
+        <span style="font-size: 11.5px; font-weight: 700; color: #8F8CAB">Kênh</span>
+        <span style="font-size: 11.5px; font-weight: 700; color: #8F8CAB">Hạn mức</span>
+        <span style="font-size: 11.5px; font-weight: 700; color: #8F8CAB">Trạng thái</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 0.8fr; gap: 12px; padding: 14px 16px; border-radius: 14px; border-bottom: 1px solid #F4F1FC">
+        <span style="font-size: 13.5px; font-weight: 600; color: #191932">gpt-4o-mini</span>
+        <span style="font-size: 13.5px; color: #56546F">azure-eu</span>
+        <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13.5px; color: #191932">$12.40</span>
+        <span style="padding: 4px 11px; border-radius: 999px; background: #E7FBF3; color: #12996C; font-size: 11.5px; font-weight: 700; justify-self: start">Hoạt động</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 0.8fr; gap: 12px; padding: 14px 16px; border-radius: 14px">
+        <span style="font-size: 13.5px; font-weight: 600; color: #191932">claude-sonnet-4</span>
+        <span style="font-size: 13.5px; color: #56546F">anthropic-1</span>
+        <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13.5px; color: #191932">$48.10</span>
+        <span style="padding: 4px 11px; border-radius: 999px; background: #FFF7E0; color: #B87A0E; font-size: 11.5px; font-weight: 700; justify-self: start">Chờ xử lý</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
