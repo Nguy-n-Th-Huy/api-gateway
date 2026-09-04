@@ -48,15 +48,15 @@ export function CTA(props: CTAProps) {
         animation='scale-in'
       >
         <h2 className='font-display text-2xl leading-tight font-bold tracking-tight md:text-4xl'>
-          {t('Ready to simplify')}
+          {t('Ready to top up and')}
           <br />
           <span className='from-primary via-chart-3 to-overview-accent-2 bg-linear-to-r bg-clip-text text-transparent'>
-            {t('your AI integration?')}
+            {t('make your first request?')}
           </span>
         </h2>
         <p className='text-muted-foreground mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
           {t(
-            'Deploy your own gateway and start routing requests through your configured upstream services.'
+            'Top up in seconds by bank transfer, then start calling the gateway with your existing code.'
           )}
         </p>
         <div className='mt-8 flex items-center justify-center gap-3'>
@@ -65,7 +65,10 @@ export function CTA(props: CTAProps) {
             render={<Link to='/sign-up' />}
           >
             {t('Get Started')}
-            <ArrowRight className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5' />
+            <ArrowRight
+              aria-hidden='true'
+              className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5'
+            />
           </Button>
           <Button
             variant='outline'

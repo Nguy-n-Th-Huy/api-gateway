@@ -16,8 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+export { Comparison } from './sections/comparison'
 export { CTA } from './sections/cta'
+export { Faq } from './sections/faq'
 export { Features } from './sections/features'
 export { Hero } from './sections/hero'
-export { HowItWorks } from './sections/how-it-works'
+export { Integrations } from './sections/integrations'
+export { PricingPreview } from './sections/pricing-preview'
+export { Providers } from './sections/providers'
+export { SepayTopup } from './sections/sepay-topup'
 export { Stats } from './sections/stats'

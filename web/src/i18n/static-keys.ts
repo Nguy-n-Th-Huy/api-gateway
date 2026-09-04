@@ -572,4 +572,60 @@ export const STATIC_I18N_KEYS = [
   'This user account is disabled.',
   'Telegram binding failed. Please try again.',
   'Verification scope is missing',
+
+  // Home page - hero trust bullets (features/home/constants.ts)
+  'No maintenance fee',
+  'No international card required',
+  'Per-request usage logs',
+
+  // Home page - SePay top-up steps (features/home/constants.ts)
+  'Scan VietQR from any banking app',
+  'Choose a top-up amount, then scan the VietQR code shown on screen with any banking app.',
+  'SePay detects the transfer automatically',
+  'SePay watches for the incoming bank transaction and notifies the gateway the moment it clears.',
+  'Quota lands in your account',
+  'The balance is credited automatically — no receipt to send, no manual review.',
+
+  // Home page - integration app descriptions (features/home/constants.ts)
+  'Pick the "OpenAI" provider and paste in the base URL',
+  'Override the OpenAI base URL in Settings',
+  'Add a profile using the Claude Messages format',
+  'Use the built-in OpenAI node and change only the endpoint',
+
+  // Home page - comparison table (features/home/constants.ts)
+  'Payment',
+  'International Visa / Mastercard',
+  'Domestic bank transfer via VietQR',
+  'Providers',
+  'One provider, one account each',
+  '40+ providers behind a single key',
+  'When a provider fails',
+  'Handled manually in application code',
+  'Automatic failover to a backup channel',
+  'Cost per project',
+  'One combined invoice',
+  'Split by API key and by group',
+  'Where data is stored',
+  "On the provider's servers",
+  'On a server you host yourself',
+
+  // Home page - core feature bento cards (features/home/constants.ts)
+  'Automatic failover when a provider errors',
+  'Multiple weighted channels per model. A channel returning 429 or a 5xx is skipped automatically and the request moves to the next channel — callers never see the interruption.',
+  'Tokens & limits',
+  'A separate key per project, each with its own quota and expiry, revocable instantly.',
+  'Transparent request logs',
+  'Every request records the model, tokens in and out, the channel that served it, and the amount charged.',
+  'One gateway, several client protocols',
+  'Clients written for the OpenAI, Claude Messages, or Gemini format all work unchanged. Switching providers does not mean rewriting application code.',
+
+  // Home page - additional feature tiles (features/home/constants.ts)
+  'Handles high load',
+  'Redis-backed caching with per-IP and per-key rate limiting',
+  'Precise billing',
+  'Quota is pre-consumed, then settled once real usage is known',
+  'Group-based management',
+  'Split users into groups, each with its own price ratio',
+  'Open source',
+  'Self-host on your own server — your data stays with you',
 ] as const
