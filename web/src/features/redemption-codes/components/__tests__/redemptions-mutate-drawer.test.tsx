@@ -59,7 +59,7 @@ type RenderedDrawer = {
 }
 type CurrencyFixture = {
   quotaDisplayType: 'USD' | 'CNY'
-  usdExchangeRate: number
+  dongPerUsd: number
 }
 
 const apiClient = api as unknown as MockableApi
@@ -112,7 +112,7 @@ async function renderDrawer(
   currentRow: Redemption,
   currency: CurrencyFixture = {
     quotaDisplayType: 'USD',
-    usdExchangeRate: 1,
+    dongPerUsd: 1,
   }
 ): Promise<void> {
   useSystemConfigStore.getState().setConfig({
@@ -120,9 +120,10 @@ async function renderDrawer(
       displayInCurrency: true,
       quotaDisplayType: currency.quotaDisplayType,
       quotaPerUnit: 500000,
-      usdExchangeRate: currency.usdExchangeRate,
+      usdExchangeRate: 1,
       customCurrencySymbol: '¤',
       customCurrencyExchangeRate: 1,
+      dongPerUsd: currency.dongPerUsd,
     },
   })
 
@@ -141,7 +142,7 @@ function getSaveButton(): HTMLButtonElement {
 }
 
 function getControlByLabel(labelText: 'Name'): HTMLInputElement
-function getControlByLabel(labelText: 'Quota (CNY)'): HTMLInputElement
+function getControlByLabel(labelText: 'Quota (VND)'): HTMLInputElement
 function getControlByLabel(labelText: 'Quota (USD)'): HTMLInputElement
 function getControlByLabel(labelText: string): HTMLElement {
   const label = [...document.querySelectorAll<HTMLLabelElement>('label')].find(
@@ -177,27 +178,32 @@ async function waitForLoadedForm(): Promise<void> {
   await waitFor(() => expect(getSaveButton()).toBeEnabled())
 }
 
-afterEach(() => {
+afterEach(async () => {
   apiClient.get = originalGet
   apiClient.put = originalPut
   Reflect.set(console, 'log', originalConsoleLog)
   toast.dismiss()
   localStorage.clear()
   renderedDrawer = null
+  await i18n.changeLanguage('en')
 })
 
 describe('redemption drawer', () => {
-  test('shows the reported CNY quota without floating-point noise', async () => {
+  test('shows the reported quota without floating-point noise for a legacy currency value', async () => {
+    // A legacy "CNY" stored value is currency mode following the interface
+    // language, not the Chinese Yuan — with Vietnamese active it renders in
+    // Dong at the top-up rate (status.price), same as a fresh "USD" value.
+    await i18n.changeLanguage('vi')
     const original = redemption(1, 13888889)
     apiClient.get = async () => ({ data: { success: true, data: original } })
 
     await renderDrawer(original, {
       quotaDisplayType: 'CNY',
-      usdExchangeRate: 7.2,
+      dongPerUsd: 7.2,
     })
     await waitForLoadedForm()
 
-    expect(getControlByLabel('Quota (CNY)').value).toBe('200')
+    expect(getControlByLabel('Quota (VND)').value).toBe('200')
   })
 
   test('blocks updates and reports an error when loading rejects', async () => {

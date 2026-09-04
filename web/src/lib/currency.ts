@@ -22,17 +22,21 @@ For commercial licensing, please contact support@quantumnous.com
  * ============================================================================
  *
  * This module provides currency formatting utilities that handle the conversion
- * between system USD amounts, local currency, and token displays based on
- * admin-configured settings.
+ * between system USD amounts, the language-driven display currency, and token
+ * displays based on admin-configured settings.
  *
  * ## Key Concepts
  *
  * 1. **System USD**: Internal currency unit used throughout the system (e.g., 10 USD)
- * 2. **Local Currency**: Admin-configured display currency (e.g., CNY, custom currency)
- * 3. **Exchange Rate (usdExchangeRate)**: Conversion rate from USD to local currency
- *    - Example: usdExchangeRate = 7 means 1 USD = 7 CNY
- * 4. **Recharge Price (priceRatio)**: Cost in local currency to purchase 1 system USD
- *    - Example: priceRatio = 5 means user pays 5 CNY to get 1 USD credit
+ * 2. **Display currency**: Follows the active interface language, not a separate
+ *    admin setting — Vietnamese (`vi`) renders Dong (`₫`), everything else renders
+ *    US dollars (`$`). The admin's `quota_display_type` only chooses between this
+ *    currency mode and raw token units (see below).
+ * 3. **Exchange Rate (dongPerUsd)**: Dong-per-dollar top-up rate (`status.price`),
+ *    the same rate the wallet charges for top-ups
+ *    - Example: dongPerUsd = 25000 means 1 USD = 25,000 ₫
+ * 4. **Recharge Price (priceRatio)**: Cost in the display currency to purchase 1 system USD
+ *    - Example: priceRatio = 20000 means user pays 20,000 ₫ to get 1 USD credit
  * 5. **Tokens**: Alternative display unit (e.g., 500,000 tokens = 1 USD)
  *
  * ## When to Use Each Function
@@ -45,18 +49,18 @@ For commercial licensing, please contact support@quantumnous.com
  * ## Example Scenario
  *
  * Admin Configuration:
- * - quotaDisplayType: 'CNY'
- * - usdExchangeRate: 7 (1 USD = 7 CNY)
- * - priceRatio: 5 (5 CNY per 1 USD credit)
+ * - quotaDisplayType: 'USD' (currency mode; the interface language is Vietnamese)
+ * - dongPerUsd: 25000 (1 USD = 25,000 ₫, from `status.price`)
+ * - priceRatio: 20000 (20,000 ₫ per 1 USD credit)
  * - quotaPerUnit: 500000 (tokens per USD)
  *
  * User Flow:
  * 1. Recharge option: 10 USD
- *    - Display: formatCurrencyFromUSD(10) → "¥70"
- * 2. Payment amount: 10 × 5 = 50 (already in CNY)
- *    - Display: formatLocalCurrencyAmount(50) → "¥50"
+ *    - Display: formatCurrencyFromUSD(10) → "₫250,000"
+ * 2. Payment amount: 10 × 20000 = 200000 (already in Dong)
+ *    - Display: formatLocalCurrencyAmount(200000) → "₫200,000"
  * 3. User receives: 10 USD credit
- *    - Balance display: formatCurrencyFromUSD(10) → "¥70"
+ *    - Balance display: formatCurrencyFromUSD(10) → "₫250,000"
  *
  * ## Quick Reference Guide
  *
@@ -76,8 +80,10 @@ For commercial licensing, please contact support@quantumnous.com
  * 2. **Database USD values**: Always use formatCurrencyFromUSD() for amounts stored as USD
  * 3. **Payment amounts**: Always use formatLocalCurrencyAmount() for priceRatio-calculated values
  * 4. **Billing displays**: Use formatBillingCurrencyFromUSD() to avoid token display
- * 5. **Effective exchange rate**: When quotaDisplayType is 'USD', use rate of 1 regardless of config
+ * 5. **Effective exchange rate**: In the English interface, use rate of 1 regardless of config
  */
+import i18next from 'i18next'
+
 import {
   useSystemConfigStore,
   DEFAULT_CURRENCY_CONFIG,
@@ -117,11 +123,6 @@ type DisplayMeta =
       kind: 'currency'
       symbol: string
       currencyCode: string
-      exchangeRate: number
-    }
-  | {
-      kind: 'custom'
-      symbol: string
       exchangeRate: number
     }
   | {
@@ -181,51 +182,70 @@ function getConfig(): CurrencyConfig {
     customCurrencySymbol:
       currency?.customCurrencySymbol?.trim() ||
       DEFAULT_CURRENCY_CONFIG.customCurrencySymbol,
+    dongPerUsd:
+      currency?.dongPerUsd && currency.dongPerUsd > 0
+        ? currency.dongPerUsd
+        : DEFAULT_CURRENCY_CONFIG.dongPerUsd,
   }
 }
 
-function getDisplayMeta(config: CurrencyConfig): DisplayMeta {
-  switch (config.quotaDisplayType) {
-    case 'CNY':
-      return {
-        kind: 'currency',
-        symbol: '¥',
-        currencyCode: 'CNY',
-        exchangeRate: config.usdExchangeRate,
-      }
-    case 'CUSTOM':
-      return {
-        kind: 'custom',
-        symbol: config.customCurrencySymbol,
-        exchangeRate: config.customCurrencyExchangeRate,
-      }
-    case 'TOKENS':
-      return {
-        kind: 'tokens',
-        quotaPerUnit: config.quotaPerUnit,
-      }
-    case 'USD':
-    default:
-      return {
-        kind: 'currency',
-        symbol: '$',
-        currencyCode: 'USD',
-        exchangeRate: 1,
-      }
-  }
+/**
+ * Whether an i18next language tag names Vietnamese, in any regional variant
+ * (`vi`, `vi-VN`, ...). Anything else — including a language that is no
+ * longer offered — falls to the English/dollar branch.
+ */
+function isVietnameseLanguage(language: string | undefined): boolean {
+  return Boolean(language?.trim().toLowerCase().startsWith('vi'))
 }
 
-function getBillingDisplayMeta(config: CurrencyConfig): DisplayMeta {
-  const meta = getDisplayMeta(config)
-  if (meta.kind === 'tokens') {
+/**
+ * Resolve the display currency from the active interface language.
+ * Vietnamese renders Dong at the top-up rate (`status.price`); every other
+ * language renders US dollars at rate 1.
+ */
+function resolveCurrencyMeta(config: CurrencyConfig): DisplayMeta {
+  const language = i18next.resolvedLanguage || i18next.language
+  // A non-positive rate means the status payload has not resolved yet. Falling
+  // through to dollars is the honest answer: rendering Dong at a stand-in rate
+  // would show a price a thousand times too low with full confidence.
+  if (isVietnameseLanguage(language) && config.dongPerUsd > 0) {
     return {
       kind: 'currency',
-      symbol: '$',
-      currencyCode: 'USD',
-      exchangeRate: 1,
+      symbol: '₫',
+      currencyCode: 'VND',
+      exchangeRate: config.dongPerUsd,
     }
   }
-  return meta
+  return {
+    kind: 'currency',
+    symbol: '$',
+    currencyCode: 'USD',
+    exchangeRate: 1,
+  }
+}
+
+/**
+ * Resolve display metadata from the admin display mode and the active
+ * interface language. `TOKENS` is the only mode that is not a currency;
+ * legacy `CNY`/`CUSTOM` values are interpreted as currency mode, same as `USD`.
+ */
+function getDisplayMeta(config: CurrencyConfig): DisplayMeta {
+  if (config.quotaDisplayType === 'TOKENS') {
+    return {
+      kind: 'tokens',
+      quotaPerUnit: config.quotaPerUnit,
+    }
+  }
+  return resolveCurrencyMeta(config)
+}
+
+/**
+ * Display metadata for billing/pricing contexts, which never show tokens —
+ * even when the admin has selected the tokens display mode, model prices and
+ * other billing amounts still follow the interface language currency.
+ */
+function getBillingDisplayMeta(config: CurrencyConfig): DisplayMeta {
+  return resolveCurrencyMeta(config)
 }
 
 function mergeOptions(
@@ -317,40 +337,30 @@ function formatCurrencyValue(
     )
   }
 
-  const digits = getFractionDigits(
-    value,
-    options.digitsLarge,
-    options.digitsSmall
-  )
+  // Dong has no minor unit — every amount is a whole number of ₫, matching
+  // formatVND() in features/wallet/lib/format.ts.
+  const digits =
+    meta.currencyCode === 'VND'
+      ? 0
+      : getFractionDigits(value, options.digitsLarge, options.digitsSmall)
   const adjustedValue = adjustForMinimum(value, digits, options.minimumNonZero)
 
-  if (meta.kind === 'currency') {
-    if (!options.showSymbol) {
-      return new Intl.NumberFormat(options.locale, {
-        notation: options.compact ? 'compact' : 'standard',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: options.compact ? 1 : digits,
-      }).format(adjustedValue)
-    }
-
-    const formatted = new Intl.NumberFormat(options.locale, {
-      style: 'currency',
-      currency: meta.currencyCode,
-      currencyDisplay: 'narrowSymbol',
+  if (!options.showSymbol) {
+    return new Intl.NumberFormat(options.locale, {
       notation: options.compact ? 'compact' : 'standard',
       minimumFractionDigits: 0,
       maximumFractionDigits: options.compact ? 1 : digits,
     }).format(adjustedValue)
-    return formatted
   }
 
-  const decimal = new Intl.NumberFormat(options.locale, {
+  return new Intl.NumberFormat(options.locale, {
+    style: 'currency',
+    currency: meta.currencyCode,
+    currencyDisplay: 'narrowSymbol',
     notation: options.compact ? 'compact' : 'standard',
     minimumFractionDigits: 0,
     maximumFractionDigits: options.compact ? 1 : digits,
   }).format(adjustedValue)
-
-  return options.showSymbol ? `${meta.symbol} ${decimal}` : decimal
 }
 
 /**
@@ -369,6 +379,20 @@ export function getCurrencyDisplay() {
 }
 
 /**
+ * Get the current currency configuration and billing display metadata (never
+ * `tokens`, even when the admin display mode is set to tokens).
+ *
+ * @internal
+ * This is primarily for internal use. Most consumers should use the
+ * higher-level formatting functions instead.
+ */
+export function getBillingCurrencyDisplay() {
+  const config = getConfig()
+  const meta = getBillingDisplayMeta(config)
+  return { config, meta }
+}
+
+/**
  * Format a USD amount according to the admin-configured display settings.
  *
  * This is the PRIMARY function for displaying quota/balance/credit amounts
@@ -383,16 +407,16 @@ export function getCurrencyDisplay() {
  * formatCurrencyFromUSD(10) → "$10"
  *
  * @example
- * // With quotaDisplayType: 'CNY', usdExchangeRate: 7
- * formatCurrencyFromUSD(10) → "¥70"
+ * // With the Vietnamese interface active, dongPerUsd: 25000
+ * formatCurrencyFromUSD(10) → "₫250,000"
  *
  * @example
  * // With quotaDisplayType: 'TOKENS', quotaPerUnit: 500000
  * formatCurrencyFromUSD(10) → "5,000,000"
  *
  * @example
- * // With quotaDisplayType: 'CUSTOM', customCurrencySymbol: '€', customCurrencyExchangeRate: 0.9
- * formatCurrencyFromUSD(10) → "€9"
+ * // With the Vietnamese interface active, dongPerUsd: 25000
+ * formatCurrencyFromUSD(10) → "₫250,000"
  *
  * @remarks
  * Use this function for:
@@ -430,10 +454,7 @@ export function formatCurrencyFromUSD(
     )
   }
 
-  const value =
-    meta.kind === 'currency'
-      ? amountUSD * meta.exchangeRate
-      : amountUSD * meta.exchangeRate
+  const value = amountUSD * meta.exchangeRate
 
   return formatCurrencyValue(value, merged, meta)
 }
@@ -442,8 +463,8 @@ export function formatCurrencyFromUSD(
  * Format USD amounts for billing/payment contexts (never shows tokens).
  *
  * Similar to formatCurrencyFromUSD, but NEVER displays in token units.
- * Always shows real currency values (USD, CNY, etc.) even when the system
- * is configured to display quotas as tokens elsewhere.
+ * Always shows the language-driven currency (USD or VND) even when the
+ * admin has configured quotas to display as tokens elsewhere.
  *
  * @param amountUSD - Amount in system USD units
  * @param options - Optional formatting configuration
@@ -454,8 +475,8 @@ export function formatCurrencyFromUSD(
  * formatBillingCurrencyFromUSD(10) → "$10"  (not "5,000,000 tokens")
  *
  * @example
- * // With quotaDisplayType: 'CNY', usdExchangeRate: 7
- * formatBillingCurrencyFromUSD(10) → "¥70"
+ * // With the Vietnamese interface active, dongPerUsd: 25000
+ * formatBillingCurrencyFromUSD(10) → "₫250,000"
  *
  * @remarks
  * Use this function for:
@@ -477,10 +498,7 @@ export function formatBillingCurrencyFromUSD(
   const { config } = getCurrencyDisplay()
   const meta = getBillingDisplayMeta(config)
   const merged = mergeOptions(options)
-  const value =
-    meta.kind === 'currency' || meta.kind === 'custom'
-      ? amountUSD * meta.exchangeRate
-      : amountUSD
+  const value = meta.kind === 'currency' ? amountUSD * meta.exchangeRate : amountUSD
 
   return formatCurrencyValue(value, merged, meta)
 }
@@ -501,8 +519,8 @@ export function formatBillingCurrencyFromUSD(
  * formatQuotaWithCurrency(5000000) → "$10"
  *
  * @example
- * // With quotaPerUnit: 500000, quotaDisplayType: 'CNY', usdExchangeRate: 7
- * formatQuotaWithCurrency(5000000) → "¥70"
+ * // With quotaPerUnit: 500000, the Vietnamese interface active, dongPerUsd: 25000
+ * formatQuotaWithCurrency(5000000) → "₫250,000"
  *
  * @remarks
  * Use this function for:
@@ -527,14 +545,16 @@ export function formatQuotaWithCurrency(
 /**
  * Get the current currency label for UI display.
  *
- * Returns a simple string label representing the current display currency.
+ * Returns a simple string label representing the currency the interface is
+ * currently displaying — resolved from the active language, not from the
+ * (possibly legacy) stored display-mode value.
  * Useful for labels, tooltips, and UI text.
  *
- * @returns Currency label string (e.g., "USD", "CNY", "Tokens")
+ * @returns Currency label string (e.g., "USD", "VND", "Tokens")
  *
  * @example
  * getCurrencyLabel() → "USD"
- * getCurrencyLabel() → "CNY"
+ * getCurrencyLabel() → "VND"
  * getCurrencyLabel() → "Tokens"
  *
  * @remarks
@@ -544,30 +564,22 @@ export function formatQuotaWithCurrency(
  * - Form field labels
  */
 export function getCurrencyLabel(): string {
-  const { config, meta } = getCurrencyDisplay()
+  const { meta } = getCurrencyDisplay()
 
   if (meta.kind === 'tokens') {
     return 'Tokens'
   }
 
-  switch (config.quotaDisplayType) {
-    case 'CNY':
-      return 'CNY'
-    case 'CUSTOM':
-      return meta.kind === 'custom' ? meta.symbol : 'Custom'
-    case 'USD':
-    default:
-      return 'USD'
-  }
+  return meta.currencyCode
 }
 
 /**
  * Check if currency display is enabled (not in token-only mode).
  *
- * @returns True if displaying in actual currency (USD/CNY/etc), false if tokens only
+ * @returns True if displaying in actual currency (USD/VND), false if tokens only
  *
  * @example
- * // With quotaDisplayType: 'USD' or 'CNY'
+ * // With quotaDisplayType: 'USD' (or the legacy 'CNY'/'CUSTOM')
  * isCurrencyDisplayEnabled() → true
  *
  * // With quotaDisplayType: 'TOKENS'
@@ -593,10 +605,10 @@ export function isCurrencyDisplayEnabled(): boolean {
  * @returns Formatted string with appropriate currency symbol
  *
  * @example
- * // Payment amount already calculated: 10 USD × priceRatio(5) = 50 CNY
- * // With quotaDisplayType: 'CNY'
- * formatLocalCurrencyAmount(50) → "¥50"
- * // NOT "¥350" (which would be 50 × 7 exchangeRate)
+ * // Payment amount already calculated: 10 USD × priceRatio(20000) = 200000 ₫
+ * // With the Vietnamese interface active
+ * formatLocalCurrencyAmount(200000) → "₫200,000"
+ * // NOT "₫5,000,000,000" (which would be 200000 × 25000 exchangeRate)
  *
  * @example
  * // With quotaDisplayType: 'USD'

@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { StaticDataTable } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
+import { getBillingCurrencyDisplay } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
@@ -245,22 +246,17 @@ export function DynamicPricingBreakdown({
   usageSchema,
   usageFacts,
 }: DynamicPricingBreakdownProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const expr = billingExpr || ''
   const currency = useSystemConfigStore((s) => s.config.currency)
 
   const { symbol, rate } = useMemo(() => {
-    if (currency.quotaDisplayType === 'CNY') {
-      return { symbol: '¥', rate: currency.usdExchangeRate || 7 }
-    }
-    if (currency.quotaDisplayType === 'CUSTOM') {
-      return {
-        symbol: currency.customCurrencySymbol || '¤',
-        rate: currency.customCurrencyExchangeRate || 1,
-      }
-    }
-    return { symbol: '$', rate: 1 }
-  }, [currency])
+    const { meta } = getBillingCurrencyDisplay()
+    return meta.kind === 'currency'
+      ? { symbol: meta.symbol, rate: meta.exchangeRate }
+      : { symbol: '$', rate: 1 }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency, i18n.language])
 
   const { tiers, ruleGroups } = useMemo(() => {
     const split = splitBillingExprAndRequestRules(expr)

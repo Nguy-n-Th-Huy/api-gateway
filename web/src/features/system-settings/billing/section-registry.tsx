@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { parseCurrencyDisplayType } from '@/lib/currency'
+import type { CurrencyDisplayType } from '@/stores/system-config-store'
 
 import { CheckinSettingsSection } from '../general/checkin-settings-section'
 import { PricingSection } from '../general/pricing-section'
@@ -39,6 +40,15 @@ const getModelDefaults = (settings: BillingSettings) => ({
   BillingMode: settings['billing_setting.billing_mode'],
   BillingExpr: settings['billing_setting.billing_expr'],
 })
+
+/**
+ * Collapse the stored display-mode value to the two modes the pricing form
+ * offers. `TOKENS` stays tokens; a legacy `CNY`/`CUSTOM` value (or `USD`)
+ * is currency mode, which the form always writes back as `USD`.
+ */
+const toPricingDisplayMode = (
+  value: CurrencyDisplayType
+): 'USD' | 'TOKENS' => (value === 'TOKENS' ? 'TOKENS' : 'USD')
 
 const getGroupDefaults = (settings: BillingSettings) => ({
   TopupGroupRatio: settings.TopupGroupRatio,
@@ -86,17 +96,14 @@ const BILLING_SECTIONS = [
       <PricingSection
         defaultValues={{
           QuotaPerUnit: settings.QuotaPerUnit,
-          USDExchangeRate: settings.USDExchangeRate,
           DisplayInCurrencyEnabled: settings.DisplayInCurrencyEnabled,
           DisplayTokenStatEnabled: settings.DisplayTokenStatEnabled,
           general_setting: {
-            quota_display_type: parseCurrencyDisplayType(
-              settings['general_setting.quota_display_type']
+            quota_display_type: toPricingDisplayMode(
+              parseCurrencyDisplayType(
+                settings['general_setting.quota_display_type']
+              )
             ),
-            custom_currency_symbol:
-              settings['general_setting.custom_currency_symbol'] ?? '¤',
-            custom_currency_exchange_rate:
-              settings['general_setting.custom_currency_exchange_rate'] ?? 1,
           },
         }}
       />

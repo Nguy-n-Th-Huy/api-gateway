@@ -32,22 +32,22 @@ common/        — Shared utilities (JSON, crypto, Redis, env, rate-limit, etc.)
 dto/           — Data transfer objects (request/response structs)
 constant/      — Constants (API types, channel types, context keys)
 types/         — Type definitions (relay formats, file sources, errors)
-i18n/          — Backend internationalization (go-i18n, en/zh)
+i18n/          — Backend internationalization (go-i18n, en/vi)
 oauth/         — OAuth provider implementations
 pkg/           — Internal packages (cachex, ionet)
 web/           — Frontend (React 19, Rsbuild, Base UI, Tailwind)
-  src/i18n/    — Frontend internationalization (i18next, en/zh/zh-TW/fr/ru/ja/vi)
+  src/i18n/    — Frontend internationalization (i18next, en/vi)
 ```
 
 ## Internationalization (i18n)
 
 ### Backend (`i18n/`)
 - Library: `nicksnyder/go-i18n/v2`
-- Languages: en, zh
+- Languages: en, vi
 
 ### Frontend (`web/src/i18n/`)
 - Library: `i18next` + `react-i18next` + `i18next-browser-languagedetector`
-- Languages: en (base), zh (fallback), zh-TW, fr, ru, ja, vi
+- Languages: en (base/fallback), vi
 - Translation files: `web/src/i18n/locales/{lang}.json` — flat JSON, keys are English source strings
 - Usage: `useTranslation()` hook, call `t('English key')` in components
 - CLI tools: `bun run i18n:sync` (from `web/`)

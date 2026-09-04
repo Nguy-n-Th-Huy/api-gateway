@@ -36,6 +36,17 @@ export interface CurrencyConfig {
   customCurrencySymbol: string
   /** Exchange rate from USD to the custom currency (used when type === CUSTOM) */
   customCurrencyExchangeRate: number
+  /**
+   * Dong-per-dollar top-up rate (`operation_setting.Price`, published as
+   * `status.price`). This is the same rate the wallet charges for top-ups,
+   * so the Vietnamese interface displays currency at exactly this rate.
+   *
+   * Zero means the rate is not known yet — the status payload has not
+   * resolved. Displaying Dong at a made-up rate would understate every price
+   * by three orders of magnitude, so an unknown rate falls back to dollars
+   * rather than to a placeholder number.
+   */
+  dongPerUsd: number
 }
 
 export interface SystemConfig {
@@ -54,6 +65,7 @@ export const DEFAULT_CURRENCY_CONFIG: CurrencyConfig = {
   usdExchangeRate: 1,
   customCurrencySymbol: '¤',
   customCurrencyExchangeRate: 1,
+  dongPerUsd: 0,
 }
 
 interface SystemConfigState {

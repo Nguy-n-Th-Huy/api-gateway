@@ -91,8 +91,7 @@ export function parseQuotaFromDollars(amount: number): number {
     return Math.round(amount)
   }
 
-  const exchangeRate =
-    meta.kind === 'currency' || meta.kind === 'custom' ? meta.exchangeRate : 1
+  const exchangeRate = meta.kind === 'currency' ? meta.exchangeRate : 1
 
   const usdAmount = exchangeRate > 0 ? amount / exchangeRate : amount
 

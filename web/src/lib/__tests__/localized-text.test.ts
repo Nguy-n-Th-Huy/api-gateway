@@ -41,7 +41,7 @@ describe('resolveLocalizedText', () => {
     {
       name: 'returns a bare string unchanged so legacy marketplace indexes still render',
       value: 'Video generation via Kling API',
-      language: 'zhCN',
+      language: 'vi',
       expected: 'Video generation via Kling API',
     },
     {
@@ -51,27 +51,15 @@ describe('resolveLocalizedText', () => {
       expected: '可靈影片生成',
     },
     {
-      name: 'matches zh-TW case-insensitively when i18next language is zh-tw',
+      name: 'matches zh-TW case-insensitively for a lowercase BCP-47 tag',
       value: KLING,
       language: 'zh-tw',
-      expected: '可靈影片生成',
-    },
-    {
-      name: 'maps the project i18next code zhTW onto the zh-TW map key',
-      value: KLING,
-      language: 'zhTW',
       expected: '可靈影片生成',
     },
     {
       name: 'falls back from zh-TW to the zh primary subtag when zh-TW is absent',
       value: { en: KLING.en, zh: KLING.zh },
       language: 'zh-TW',
-      expected: '可灵视频生成',
-    },
-    {
-      name: 'maps the project i18next code zhCN onto the zh primary subtag',
-      value: { en: KLING.en, zh: KLING.zh },
-      language: 'zhCN',
       expected: '可灵视频生成',
     },
     {
@@ -107,7 +95,7 @@ describe('resolveLocalizedText', () => {
     {
       name: 'returns an empty string when the map has no usable entries',
       value: {},
-      language: 'zhCN',
+      language: 'vi',
       expected: '',
     },
   ])('$name', ({ value, language, expected }) => {

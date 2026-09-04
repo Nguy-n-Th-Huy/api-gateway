@@ -47,6 +47,7 @@ interface StatusApiResponse {
     usd_exchange_rate?: number
     custom_currency_symbol?: string
     custom_currency_exchange_rate?: number
+    price?: number
   }
 }
 
@@ -90,6 +91,7 @@ export function mapStatusDataToConfig(
       data.custom_currency_exchange_rate,
       DEFAULT_CURRENCY_CONFIG.customCurrencyExchangeRate
     ),
+    dongPerUsd: toNumber(data.price, DEFAULT_CURRENCY_CONFIG.dongPerUsd),
   }
 
   return {
