@@ -110,6 +110,7 @@ export function UserAuthForm({
   const hasWeChatLogin = Boolean(status?.wechat_login)
   const hasOAuthLogin = Boolean(
     status?.github_oauth ||
+    status?.google_oauth ||
     status?.discord_oauth ||
     status?.oidc_enabled ||
     status?.linuxdo_oauth ||
