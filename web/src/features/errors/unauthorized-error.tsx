@@ -28,7 +28,9 @@ export function UnauthorisedError() {
   return (
     <div className='h-svh'>
       <div className='m-auto flex h-full w-full flex-col items-center justify-center gap-2'>
-        <h1 className='text-[7rem] leading-tight font-bold'>401</h1>
+        <h1 className='font-display from-primary via-chart-3 to-overview-accent-2 bg-linear-to-br bg-clip-text text-[7rem] leading-tight font-extrabold tracking-tight text-transparent'>
+          401
+        </h1>
         <span className='font-medium'>{t('Unauthorized Access')}</span>
         <p className='text-muted-foreground text-center'>
           {t('Please log in with the appropriate credentials')} <br />{' '}

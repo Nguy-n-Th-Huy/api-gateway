@@ -126,9 +126,9 @@ export type DataTableToolbarProps<TData> = {
   /**
    * Content rendered on the LEFT side of the secondary action row. When
    * provided the toolbar splits into two visual rows:
-   *   Row 1: search inputs / filter chips …… Expand
-   *   Row 2: expanded filters
-   *   Row 3: leftActions …… Reset / Search / ViewOptions
+   * Row 1: search inputs / filter chips …… Expand
+   * Row 2: expanded filters
+   * Row 3: leftActions …… Reset / Search / ViewOptions
    */
   leftActions?: ReactNode
   /**
@@ -142,11 +142,11 @@ export type DataTableToolbarProps<TData> = {
  *
  * Layout (single flex-wrap row):
  * - Filters (search input + additional inputs + filter chips + expandable
- *   inputs) flow horizontally and wrap as needed.
+ * inputs) flow horizontally and wrap as needed.
  * - The action cluster (Reset / Search / View / Expand) hugs the right
- *   edge via `ms-auto`. When filters fill a row, the cluster naturally
- *   wraps to the next line — still right-aligned — matching the
- *   collapsed/expanded states from the user's reference design.
+ * edge via `ms-auto`. When filters fill a row, the cluster naturally
+ * wraps to the next line — still right-aligned — matching the
+ * collapsed/expanded states from the user's reference design.
  *
  * No background panel, no row separators — relies on whitespace and the
  * adjacent table border for visual hierarchy.

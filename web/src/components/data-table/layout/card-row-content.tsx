@@ -46,8 +46,8 @@ function orderCardCells<TData>(
  * per-row content here guarantees the two stay visually consistent.
  *
  * Column meta extensions (see `card-cell-utils.ts`):
- * - `mobileTitle`  — card header (left, larger text)
- * - `mobileBadge`  — inline with title (right, e.g. status badge)
+ * - `mobileTitle` — card header (left, larger text)
+ * - `mobileBadge` — inline with title (right, e.g. status badge)
  * - `mobileHidden` — hidden in card content
  */
 
@@ -56,10 +56,10 @@ function orderCardCells<TData>(
  * Used when columns define mobileTitle or mobileBadge meta.
  *
  * Visual structure:
- *   [Title content]             [Badge]
- *   [Field1 label] [Field2 label]
- *   [Field1 value] [Field2 value]
- *                          [Actions ⋯]
+ * [Title content] [Badge]
+ * [Field1 label] [Field2 label]
+ * [Field1 value] [Field2 value]
+ * [Actions ⋯]
  */
 function CompactContent<TData>({ row }: { row: Row<TData> }) {
   const allCells = row

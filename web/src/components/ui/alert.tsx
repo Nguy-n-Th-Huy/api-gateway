@@ -29,6 +29,13 @@ const alertVariants = cva(
         default: 'bg-card text-card-foreground',
         destructive:
           'bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current',
+        // Semantic status treatments — tinted ground + darkened status text so
+        // every pairing clears the contrast floor (design.md D4).
+        success:
+          'border-success/25 bg-success/10 text-success *:data-[slot=alert-description]:text-success/90',
+        warning:
+          'border-warning/25 bg-warning/10 text-warning *:data-[slot=alert-description]:text-warning/90',
+        info: 'border-info/25 bg-info/10 text-info *:data-[slot=alert-description]:text-info/90',
       },
     },
     defaultVariants: {

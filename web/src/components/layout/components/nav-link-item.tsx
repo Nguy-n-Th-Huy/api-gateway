@@ -33,8 +33,11 @@ interface NavLinkItemProps {
  */
 export function NavLinkItem({ link, className }: NavLinkItemProps) {
   const linkClassName = cn(
-    'text-muted-foreground hover:text-foreground transition-colors',
-    link.disabled && 'pointer-events-none opacity-50',
+    'rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden',
+    link.isActive
+      ? 'bg-accent text-accent-foreground font-semibold'
+      : 'text-muted-foreground hover:bg-accent/55 hover:text-foreground',
+    link.disabled && 'pointer-events-none opacity-40',
     className
   )
 
@@ -46,6 +49,7 @@ export function NavLinkItem({ link, className }: NavLinkItemProps) {
         rel='noopener noreferrer'
         className={linkClassName}
         aria-disabled={link.disabled}
+        aria-current={link.isActive ? 'page' : undefined}
       >
         {link.title}
       </a>
@@ -53,7 +57,13 @@ export function NavLinkItem({ link, className }: NavLinkItemProps) {
   }
 
   return (
-    <Link to={link.href} className={linkClassName} disabled={link.disabled}>
+    <Link
+      to={link.href}
+      className={linkClassName}
+      disabled={link.disabled}
+      aria-disabled={link.disabled}
+      aria-current={link.isActive ? 'page' : undefined}
+    >
       {link.title}
     </Link>
   )
@@ -76,9 +86,9 @@ export function NavLinkList({
 }: NavLinkListProps) {
   return (
     <>
-      {links.map((link, index) => (
+      {links.map((link) => (
         <NavLinkItem
-          key={index}
+          key={`${link.title}-${link.href}`}
           link={link}
           className={cn(className, itemClassName)}
         />

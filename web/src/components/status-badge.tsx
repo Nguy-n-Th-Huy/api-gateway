@@ -17,24 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { LucideIcon } from 'lucide-react'
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 /* eslint-disable react-refresh/only-export-components */
 import * as React from 'react'
 
@@ -56,7 +38,7 @@ export const dotColorMap = {
   grey: 'bg-neutral',
   indigo: 'bg-chart-1',
   'light-blue': 'bg-info',
-  'light-green': 'bg-emerald-400',
+  'light-green': 'bg-success',
   lime: 'bg-chart-3',
   orange: 'bg-warning',
   pink: 'bg-chart-5',
@@ -80,7 +62,7 @@ export const textColorMap = {
   grey: 'text-muted-foreground',
   indigo: 'text-chart-1',
   'light-blue': 'text-info',
-  'light-green': 'text-emerald-500 dark:text-emerald-300',
+  'light-green': 'text-success',
   lime: 'text-chart-3',
   orange: 'text-warning',
   pink: 'text-chart-5',
@@ -93,14 +75,14 @@ export const textColorMap = {
 export type StatusVariant = keyof typeof dotColorMap
 
 /** Controls the visual style of the badge.
- * - `badge`    — default pill with background and padding (default)
- * - `text`     — plain text, no background or padding, only color
+ * - `badge` — default pill with background and padding (default)
+ * - `text` — plain text, no background or padding, only color
  * - `underline`— plain text with a bottom border underline
  */
 export type StatusBadgeType = 'badge' | 'text' | 'underline'
 
 /** Context that lets ancestor components (e.g. MobileCardList field area)
- *  override the badge type without modifying every call site. */
+ * override the badge type without modifying every call site. */
 export const StatusBadgeTypeContext =
   React.createContext<StatusBadgeType>('badge')
 

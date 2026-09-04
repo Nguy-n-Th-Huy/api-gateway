@@ -58,7 +58,7 @@ export function GeneralError({
     <div className={cn('h-svh w-full', className)}>
       <div className='m-auto flex h-full w-full flex-col items-center justify-center gap-2'>
         {!minimal && (
-          <h1 className='text-[7rem] leading-tight font-bold'>
+          <h1 className='font-display from-primary via-chart-3 to-overview-accent-2 bg-linear-to-br bg-clip-text text-[7rem] leading-tight font-extrabold tracking-tight text-transparent'>
             {status ?? 500}
           </h1>
         )}

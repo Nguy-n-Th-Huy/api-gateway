@@ -73,13 +73,13 @@ export function Home() {
       return (
         <PublicLayout showMainContainer={false}>
           {/*
-            allow-top-navigation-by-user-activation: the custom home page URL is
-            admin-configured (trusted); this lets its target="_top" nav/menu links
-            navigate the top-level window on user click. The default sandbox blocks
-            this on desktop, while some mobile browsers allow it via allow-popups,
-            causing inconsistent behavior. This token only permits user-activated
-            top-level navigation and does NOT grant same-origin access.
-          */}
+ allow-top-navigation-by-user-activation: the custom home page URL is
+ admin-configured (trusted); this lets its target="_top" nav/menu links
+ navigate the top-level window on user click. The default sandbox blocks
+ this on desktop, while some mobile browsers allow it via allow-popups,
+ causing inconsistent behavior. This token only permits user-activated
+ top-level navigation and does NOT grant same-origin access.
+ */}
           <iframe
             ref={iframeRef}
             src={content}

@@ -36,9 +36,9 @@ import { SidebarViewHeader } from './sidebar-view-header'
  * sub-navigation inside the root tree.
  *
  * Architecture:
- *   - View resolution + filtering: {@link useSidebarView}
- *   - View registry: `layout/lib/sidebar-view-registry.ts`
- *   - Per-view header: {@link SidebarViewHeader}
+ * - View resolution + filtering: {@link useSidebarView}
+ * - View registry: `layout/lib/sidebar-view-registry.ts`
+ * - Per-view header: {@link SidebarViewHeader}
  *
  * Adding a new nested view only requires registering a {@link SidebarView}
  * in the registry; this component requires no changes.

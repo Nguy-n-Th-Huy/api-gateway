@@ -286,7 +286,8 @@ function VendorList(props: {
             aria-hidden
             className='size-2.5 shrink-0 rounded-full'
             style={{
-              backgroundColor: props.colourMap[vendor.vendor] ?? '#94a3b8',
+              backgroundColor:
+                props.colourMap[vendor.vendor] ?? 'var(--muted-foreground)',
             }}
           />
           <VendorLink

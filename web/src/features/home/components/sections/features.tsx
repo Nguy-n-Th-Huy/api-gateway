@@ -29,6 +29,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { AnimateInView } from '@/components/animate-in-view'
+import { cn } from '@/lib/utils'
 
 interface FeaturesProps {
   className?: string
@@ -46,14 +47,14 @@ export function Features(_props: FeaturesProps) {
         'Optimized network architecture ensures millisecond response times'
       ),
       span: 'md:col-span-2',
-      icon: <Zap className='size-4 text-blue-400' />,
+      icon: <Zap className='text-primary size-4' />,
       visual: (
         <div className='mt-4 grid grid-cols-3 gap-2'>
           {['OpenAI', 'Claude', 'Gemini', 'DeepSeek', 'Qwen', 'Llama'].map(
             (name) => (
               <div
                 key={name}
-                className='border-border/30 bg-muted/20 text-muted-foreground flex items-center justify-center rounded-lg border px-3 py-2 text-xs transition-colors duration-300 hover:border-blue-500/30 hover:bg-blue-500/5'
+                className='border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-accent/40 flex items-center justify-center rounded-lg border px-3 py-2 text-xs transition-colors duration-300'
               >
                 {name}
               </div>
@@ -70,19 +71,16 @@ export function Features(_props: FeaturesProps) {
         'Enterprise-grade security with comprehensive permission management'
       ),
       span: 'md:col-span-1',
-      icon: <Shield className='size-4 text-emerald-400' />,
+      icon: <Shield className='text-success size-4' />,
       visual: (
         <div className='mt-4 flex items-center justify-center'>
           <div className='relative'>
-            <div className='flex size-16 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/5'>
-              <Shield
-                className='size-7 text-emerald-500/70'
-                strokeWidth={1.5}
-              />
+            <div className='border-success/25 bg-success/5 flex size-16 items-center justify-center rounded-2xl border'>
+              <Shield className='text-success size-7' strokeWidth={1.5} />
             </div>
-            <div className='absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-emerald-500'>
+            <div className='bg-success absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full'>
               <svg
-                className='size-2.5 text-white'
+                className='text-success-foreground size-2.5'
                 fill='none'
                 viewBox='0 0 24 24'
                 stroke='currentColor'
@@ -105,22 +103,23 @@ export function Features(_props: FeaturesProps) {
       title: t('Global Coverage'),
       desc: t('Multi-region deployment for stable global access'),
       span: 'md:col-span-1',
-      icon: <Globe className='size-4 text-violet-400' />,
+      icon: <Globe className='text-chart-3 size-4' />,
       visual: (
         <div className='mt-4 space-y-2'>
           {[t('Load Balancing'), t('Rate Limiting'), t('Cost Tracking')].map(
             (step, i) => (
               <div key={step} className='flex items-center gap-2'>
                 <div
-                  className={`flex size-6 items-center justify-center rounded-full text-[10px] font-bold ${
+                  className={cn(
+                    'flex size-6 items-center justify-center rounded-full text-[10px] font-bold',
                     i === 1
-                      ? 'border border-blue-500/30 bg-blue-500/20 text-blue-500'
-                      : 'border-border/40 bg-muted text-muted-foreground border'
-                  }`}
+                      ? 'border-primary/30 bg-primary/15 text-primary border'
+                      : 'border-border bg-muted text-muted-foreground border'
+                  )}
                 >
                   {i + 1}
                 </div>
-                <div className='bg-border/40 h-px flex-1' />
+                <div className='bg-border h-px flex-1' />
                 <span className='text-muted-foreground text-xs'>{step}</span>
               </div>
             )
@@ -134,7 +133,7 @@ export function Features(_props: FeaturesProps) {
       title: t('Developer Friendly'),
       desc: t('Compatible API routes for common AI application workflows'),
       span: 'md:col-span-2',
-      icon: <Code className='size-4 text-amber-400' />,
+      icon: <Code className='text-warning size-4' />,
       visual: (
         <div className='mt-4 flex items-center gap-3'>
           <div className='flex -space-x-2'>
@@ -148,7 +147,7 @@ export function Features(_props: FeaturesProps) {
             ))}
           </div>
           <div className='text-muted-foreground flex items-center gap-1.5 text-xs'>
-            <Code className='size-3.5 text-blue-500' />
+            <Code className='text-primary size-3.5' />
             {t('Multi-protocol Compatible')}
           </div>
         </div>

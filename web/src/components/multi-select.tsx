@@ -101,13 +101,13 @@ function splitDraft(value: string): { completed: string[]; draft: string } {
  * Behaviour:
  * - Search filters built-in options (Base UI handles fuzzy filtering).
  * - When `allowCreate` is true, custom values can be added inline:
- *   - Type and press Enter / "," to add a single value.
- *   - Paste a comma- (or newline-) separated list to add many at once.
- *   - A "Add \"<value>\"" item appears at the top of the dropdown when the
- *     typed text doesn't match any option.
+ * - Type and press Enter / "," to add a single value.
+ * - Paste a comma- (or newline-) separated list to add many at once.
+ * - A "Add \"<value>\"" item appears at the top of the dropdown when the
+ * typed text doesn't match any option.
  * - Backspace on an empty input removes the last selected chip (Base UI default).
  * - `maxVisibleChips` can cap large selections and show a compact "+N more"
- *   summary so forms do not grow vertically without bound.
+ * summary so forms do not grow vertically without bound.
  *
  * Focus/border styling is inherited from `ComboboxChips`, which uses the same
  * tokens as `Input` so it stays visually consistent with other form fields.

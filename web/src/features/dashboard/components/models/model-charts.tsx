@@ -18,12 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { VChart } from '@visactor/react-vchart'
 import { PieChart as PieChartIcon } from 'lucide-react'
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconBadge } from '@/components/ui/icon-badge'
-import { useThemeCustomization } from '@/context/theme-customization-provider'
-import { useTheme } from '@/context/theme-provider'
 import {
   DEFAULT_TIME_GRANULARITY,
   MODEL_ANALYTICS_CHART_OPTIONS,
@@ -35,11 +33,8 @@ import type {
 } from '@/features/dashboard/types'
 import { useThemeRadiusPx } from '@/lib/theme-radius'
 import type { TimeGranularity } from '@/lib/time'
+import { useChartTheme } from '@/lib/use-chart-theme'
 import { VCHART_OPTION } from '@/lib/vchart'
-
-let themeManagerPromise: Promise<
-  (typeof import('@visactor/vchart'))['ThemeManager']
-> | null = null
 
 type ChartSpecKey = 'spec_model_line' | 'spec_pie' | 'spec_rank_bar'
 
@@ -58,43 +53,16 @@ interface ModelChartsProps {
 
 export function ModelCharts(props: ModelChartsProps) {
   const { t } = useTranslation()
-  const { resolvedTheme } = useTheme()
-  const { customization } = useThemeCustomization()
-  const chartRadius = useThemeRadiusPx(
-    '--radius-md',
-    `${customization.preset}:${customization.radius}`
-  )
+  const { resolvedTheme, themeReady, chartColors } = useChartTheme()
+  const chartRadius = useThemeRadiusPx('--radius-md')
   const [activeTab, setActiveTab] = useState<ModelAnalyticsChartTab>(
     props.defaultChartTab ?? 'trend'
   )
-  const [themeReady, setThemeReady] = useState(false)
-  const themeManagerRef = useRef<
-    (typeof import('@visactor/vchart'))['ThemeManager'] | null
-  >(null)
   const timeGranularity = props.timeGranularity ?? DEFAULT_TIME_GRANULARITY
 
   useEffect(() => {
     if (props.defaultChartTab) setActiveTab(props.defaultChartTab)
   }, [props.defaultChartTab])
-
-  useEffect(() => {
-    const updateTheme = async () => {
-      setThemeReady(false)
-
-      if (!themeManagerPromise) {
-        themeManagerPromise = import('@visactor/vchart').then(
-          (m) => m.ThemeManager
-        )
-      }
-
-      const ThemeManager = await themeManagerPromise
-      themeManagerRef.current = ThemeManager
-      ThemeManager.setCurrentTheme(resolvedTheme === 'dark' ? 'dark' : 'light')
-      setThemeReady(true)
-    }
-
-    updateTheme()
-  }, [resolvedTheme])
 
   const chartData = useMemo(
     () =>
@@ -115,7 +83,6 @@ export function ModelCharts(props: ModelChartsProps) {
     props.loading ? 'loading' : 'ready',
     props.data.length,
     resolvedTheme,
-    customization.preset,
   ].join('-')
 
   return (
@@ -157,6 +124,7 @@ export function ModelCharts(props: ModelChartsProps) {
             key={chartKey}
             spec={{
               ...spec,
+              color: chartColors.series,
               theme: resolvedTheme === 'dark' ? 'dark' : 'light',
               background: 'transparent',
             }}

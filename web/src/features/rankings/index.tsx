@@ -55,57 +55,55 @@ export function Rankings() {
     })
   }
 
+  // Body content: loading / error / data branches kept flat (no nested
+  // ternaries) per the project style rules.
+  let body: React.ReactNode
+  if (rankingsQuery.isLoading) {
+    body = <RankingsLoading />
+  } else if (!snapshot) {
+    body = (
+      <RankingsError
+        message={
+          rankingsQuery.error instanceof Error
+            ? rankingsQuery.error.message
+            : t('Unable to load rankings data')
+        }
+      />
+    )
+  } else {
+    body = (
+      <>
+        <ModelsSection
+          history={snapshot.models_history}
+          rows={snapshot.models}
+          period={period}
+        />
+
+        <MarketShareSection
+          history={snapshot.vendor_share_history}
+          rows={snapshot.vendors}
+          period={period}
+        />
+
+        <PulseSection
+          movers={snapshot.top_movers}
+          droppers={snapshot.top_droppers}
+        />
+      </>
+    )
+  }
+
   return (
     <PublicLayout showMainContainer={false}>
       <div className='relative'>
         <div
           aria-hidden
-          className='pointer-events-none absolute inset-x-0 top-0 h-[600px] opacity-20 dark:opacity-[0.10]'
-          style={{
-            background: [
-              'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.72 0.18 250 / 80%) 0%, transparent 70%)',
-              'radial-gradient(ellipse 50% 40% at 80% 15%, oklch(0.65 0.15 200 / 60%) 0%, transparent 70%)',
-              'radial-gradient(ellipse 40% 35% at 50% 70%, oklch(0.70 0.12 280 / 40%) 0%, transparent 70%)',
-            ].join(', '),
-            maskImage:
-              'linear-gradient(to bottom, black 40%, transparent 100%)',
-            WebkitMaskImage:
-              'linear-gradient(to bottom, black 40%, transparent 100%)',
-          }}
+          className='pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-[radial-gradient(60%_50%_at_20%_20%,var(--accent),transparent_70%),radial-gradient(50%_40%_at_80%_15%,color-mix(in_oklch,var(--overview-accent-2)_16%,transparent),transparent_70%),radial-gradient(40%_35%_at_50%_70%,var(--accent),transparent_70%)] [mask-image:linear-gradient(to_bottom,black_40%,transparent_100%)] opacity-60 dark:opacity-20'
         />
         <PageTransition className='relative mx-auto w-full max-w-[1280px] space-y-8 px-3 pt-16 pb-10 sm:px-6 sm:pt-20 sm:pb-12 xl:px-8'>
           <RankingsHero period={period} onPeriodChange={handlePeriodChange} />
 
-          {rankingsQuery.isLoading ? (
-            <RankingsLoading />
-          ) : !snapshot ? (
-            <RankingsError
-              message={
-                rankingsQuery.error instanceof Error
-                  ? rankingsQuery.error.message
-                  : t('Unable to load rankings data')
-              }
-            />
-          ) : (
-            <>
-              <ModelsSection
-                history={snapshot.models_history}
-                rows={snapshot.models}
-                period={period}
-              />
-
-              <MarketShareSection
-                history={snapshot.vendor_share_history}
-                rows={snapshot.vendors}
-                period={period}
-              />
-
-              <PulseSection
-                movers={snapshot.top_movers}
-                droppers={snapshot.top_droppers}
-              />
-            </>
-          )}
+          {body}
         </PageTransition>
       </div>
     </PublicLayout>

@@ -31,31 +31,70 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   const { systemName, logo, loading } = useSystemConfig()
 
   return (
-    <div className='relative grid h-svh max-w-none'>
-      <Link
-        to='/'
-        className='absolute top-4 left-4 z-10 flex items-center gap-2 transition-opacity hover:opacity-80 sm:top-8 sm:left-8'
-      >
-        <div className='relative h-8 w-8'>
-          {loading ? (
-            <Skeleton className='absolute inset-0 rounded-full' />
-          ) : (
-            <img
-              src={logo}
-              alt={t('Logo')}
-              className='h-8 w-8 rounded-full object-cover'
-            />
-          )}
+    <div className='bg-background min-h-svh'>
+      {/* Desktop: split brand panel / form card; mobile: stacked, card-only. */}
+      <div className='flex min-h-svh flex-col lg:grid lg:grid-cols-2'>
+        {/* Brand panel — decorative gradient lockup, no invented copy. */}
+        <div className='from-primary via-chart-3 to-chart-2 relative hidden flex-col overflow-hidden bg-linear-to-br lg:flex'>
+          <div
+            aria-hidden='true'
+            className='absolute -top-36 -left-28 size-[420px] rounded-full bg-white/10'
+          />
+          <div
+            aria-hidden='true'
+            className='absolute -right-28 -bottom-44 size-[460px] rounded-full bg-white/10'
+          />
+          <div className='relative flex flex-1 items-center justify-center p-12'>
+            <div className='flex flex-col items-center gap-6 text-center'>
+              <div className='flex size-16 items-center justify-center rounded-2xl bg-white/20'>
+                {loading ? (
+                  <Skeleton className='size-16 rounded-2xl bg-white/40' />
+                ) : (
+                  <img
+                    src={logo}
+                    alt={t('Logo')}
+                    className='size-14 rounded-xl object-cover'
+                  />
+                )}
+              </div>
+              {loading ? (
+                <Skeleton className='h-8 w-40 bg-white/40' />
+              ) : (
+                <span className='font-display text-2xl font-bold text-white'>
+                  {systemName}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-        {loading ? (
-          <Skeleton className='h-6 w-24' />
-        ) : (
-          <h1 className='text-xl font-medium'>{systemName}</h1>
-        )}
-      </Link>
-      <div className='container flex items-center pt-16 sm:pt-0'>
-        <div className='mx-auto flex w-full flex-col justify-center space-y-2 px-4 py-8 sm:w-[480px] sm:p-8'>
-          {children}
+
+        {/* Form side — the card the mock centers in its right column. */}
+        <div className='flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-8 lg:px-12'>
+          {/* Small-viewport brand header */}
+          <Link to='/' className='mb-8 flex items-center gap-2 lg:hidden'>
+            <div className='relative size-8'>
+              {loading ? (
+                <Skeleton className='absolute inset-0 rounded-full' />
+              ) : (
+                <img
+                  src={logo}
+                  alt={t('Logo')}
+                  className='size-8 rounded-full object-cover'
+                />
+              )}
+            </div>
+            {loading ? (
+              <Skeleton className='h-6 w-24' />
+            ) : (
+              <span className='font-display text-lg font-bold'>
+                {systemName}
+              </span>
+            )}
+          </Link>
+
+          <div className='border-border bg-card w-full max-w-md rounded-2xl border p-6 shadow-[0_28px_60px_-30px_rgba(58,42,140,0.25)] sm:p-10'>
+            {children}
+          </div>
         </div>
       </div>
     </div>

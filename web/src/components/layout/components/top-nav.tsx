@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
-import { type TopNavLink } from '../types'
+import type { TopNavLink } from '../types'
 
 type TopNavProps = React.HTMLAttributes<HTMLElement> & {
   links: TopNavLink[]
@@ -58,7 +58,7 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
       <div className='lg:hidden'>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger
-            render={<Button size='icon' variant='outline' className='size-7' />}
+            render={<Button size='icon' variant='outline' className='size-9' />}
           >
             <Menu />
           </DropdownMenuTrigger>
@@ -73,21 +73,29 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
                         href={href}
                         target='_blank'
                         rel='noopener noreferrer'
-                        className={!isActive ? 'text-muted-foreground' : ''}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={cn(
+                          !isActive && 'text-muted-foreground',
+                          isActive && 'font-semibold'
+                        )}
                       >
                         {title}
                       </a>
                     ) : (
                       <Link
                         to={href}
-                        className={!isActive ? 'text-muted-foreground' : ''}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={cn(
+                          !isActive && 'text-muted-foreground',
+                          isActive && 'font-semibold'
+                        )}
                         disabled={disabled}
                       >
                         {title}
                       </Link>
                     )
                   }
-                ></DropdownMenuItem>
+                />
               )
             )}
           </DropdownMenuContent>
@@ -109,7 +117,15 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
               href={href}
               target='_blank'
               rel='noopener noreferrer'
-              className={`hover:text-primary text-sm font-medium transition-colors ${isActive ? '' : 'text-muted-foreground'}`}
+              aria-disabled={disabled}
+              aria-current={isActive ? 'page' : undefined}
+              className={cn(
+                'rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden',
+                isActive
+                  ? 'bg-accent text-accent-foreground font-semibold'
+                  : 'text-muted-foreground hover:bg-accent/55 hover:text-foreground',
+                disabled && 'pointer-events-none opacity-40'
+              )}
             >
               {title}
             </a>
@@ -118,7 +134,15 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
               key={`${title}-${href}`}
               to={href}
               disabled={disabled}
-              className={`hover:text-primary text-sm font-medium transition-colors ${isActive ? '' : 'text-muted-foreground'}`}
+              aria-disabled={disabled}
+              aria-current={isActive ? 'page' : undefined}
+              className={cn(
+                'rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden',
+                isActive
+                  ? 'bg-accent text-accent-foreground font-semibold'
+                  : 'text-muted-foreground hover:bg-accent/55 hover:text-foreground',
+                disabled && 'pointer-events-none opacity-40'
+              )}
             >
               {title}
             </Link>

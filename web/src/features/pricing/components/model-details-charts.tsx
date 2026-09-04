@@ -20,7 +20,6 @@ import { VChart } from '@visactor/react-vchart'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useThemeCustomization } from '@/context/theme-customization-provider'
 import { getSuccessRateColor } from '@/features/performance-metrics/lib/format'
 import { useThemeRadiusPx } from '@/lib/theme-radius'
 import { useChartTheme } from '@/lib/use-chart-theme'
@@ -48,19 +47,6 @@ function formatDayLabel(date: string): string {
     month: 'short',
     day: 'numeric',
   })
-}
-
-function getChartThemeTokens(resolvedTheme: string) {
-  return {
-    textColor:
-      resolvedTheme === 'dark'
-        ? 'rgba(255, 255, 255, 0.68)'
-        : 'rgba(15, 23, 42, 0.58)',
-    gridColor:
-      resolvedTheme === 'dark'
-        ? 'rgba(255, 255, 255, 0.12)'
-        : 'rgba(15, 23, 42, 0.12)',
-  }
 }
 
 const UPTIME_AXIS_MAX = 100
@@ -98,8 +84,7 @@ export function LatencyTrendChart(props: {
   className?: string
 }) {
   const { t } = useTranslation()
-  const { resolvedTheme, themeReady } = useChartTheme()
-  const { textColor, gridColor } = getChartThemeTokens(resolvedTheme)
+  const { resolvedTheme, themeReady, chartColors } = useChartTheme()
 
   const spec = useMemo(() => {
     if (props.series.length === 0) return null
@@ -115,9 +100,10 @@ export function LatencyTrendChart(props: {
       yField: 'ttft',
       seriesField: 'group',
       smooth: true,
+      color: chartColors.series,
       point: {
         visible: true,
-        style: { size: 5, stroke: '#ffffff', lineWidth: 1.5 },
+        style: { size: 5, stroke: chartColors.surface, lineWidth: 1.5 },
       },
       line: {
         style: { lineWidth: 2 },
@@ -138,7 +124,7 @@ export function LatencyTrendChart(props: {
         {
           orient: 'bottom',
           label: {
-            style: { fill: textColor, fontSize: 10 },
+            style: { fill: chartColors.text, fontSize: 10 },
           },
           tick: { visible: false },
         },
@@ -146,16 +132,16 @@ export function LatencyTrendChart(props: {
           orient: 'left',
           label: {
             formatMethod: (val: number | string) => `${val} ms`,
-            style: { fill: textColor, fontSize: 10 },
+            style: { fill: chartColors.text, fontSize: 10 },
           },
           grid: {
             visible: true,
-            style: { lineDash: [3, 3], stroke: gridColor },
+            style: { lineDash: [3, 3], stroke: chartColors.grid },
           },
         },
       ],
     }
-  }, [gridColor, props.series, t, textColor])
+  }, [chartColors, props.series, t])
 
   if (props.series.length === 0) {
     return (
@@ -196,8 +182,7 @@ export function UptimeTrendChart(props: {
   className?: string
 }) {
   const { t } = useTranslation()
-  const { resolvedTheme, themeReady } = useChartTheme()
-  const { textColor, gridColor } = getChartThemeTokens(resolvedTheme)
+  const { resolvedTheme, themeReady, chartColors } = useChartTheme()
 
   const spec = useMemo(() => {
     if (props.series.length === 0) return null
@@ -224,13 +209,13 @@ export function UptimeTrendChart(props: {
       yField: 'uptime',
       smooth: true,
       line: {
-        style: { stroke: '#10b981', lineWidth: 2 },
+        style: { stroke: chartColors.success, lineWidth: 2 },
       },
       point: {
         visible: true,
         style: {
           size: 5,
-          stroke: '#ffffff',
+          stroke: chartColors.surface,
           lineWidth: 1.5,
           fill: (datum: { uptime: number }) =>
             getSuccessRateColor(datum.uptime),
@@ -263,7 +248,7 @@ export function UptimeTrendChart(props: {
           label: {
             formatMethod: (val: number | string) =>
               stripUptimePointSuffix(String(val)),
-            style: { fill: textColor, fontSize: 10 },
+            style: { fill: chartColors.text, fontSize: 10 },
             autoLimit: true,
           },
           tick: { visible: false },
@@ -274,16 +259,16 @@ export function UptimeTrendChart(props: {
           max: UPTIME_AXIS_MAX,
           label: {
             formatMethod: (val: number | string) => `${val}%`,
-            style: { fill: textColor, fontSize: 10 },
+            style: { fill: chartColors.text, fontSize: 10 },
           },
           grid: {
             visible: true,
-            style: { lineDash: [3, 3], stroke: gridColor },
+            style: { lineDash: [3, 3], stroke: chartColors.grid },
           },
         },
       ],
     }
-  }, [gridColor, props.series, t, textColor])
+  }, [chartColors, props.series, t])
 
   if (props.series.length === 0) {
     return (
@@ -324,13 +309,8 @@ export function ThroughputBarChart(props: {
   className?: string
 }) {
   const { t } = useTranslation()
-  const { resolvedTheme, themeReady } = useChartTheme()
-  const { textColor, gridColor } = getChartThemeTokens(resolvedTheme)
-  const { customization } = useThemeCustomization()
-  const barRadius = useThemeRadiusPx(
-    '--radius-sm',
-    `${customization.preset}:${customization.radius}`
-  )
+  const { resolvedTheme, themeReady, chartColors } = useChartTheme()
+  const barRadius = useThemeRadiusPx('--radius-sm')
 
   const filtered = useMemo(
     () => props.rows.filter((r) => r.throughput_tps > 0),
@@ -347,28 +327,28 @@ export function ThroughputBarChart(props: {
       yField: 'group',
       bar: {
         style: {
-          fill: '#6366f1',
+          fill: chartColors.series[0] ?? chartColors.success,
           ...(barRadius == null ? {} : { cornerRadius: barRadius }),
         },
       },
       label: {
         visible: true,
         position: 'right',
-        style: { fontSize: 11, fill: textColor },
+        style: { fontSize: 11, fill: chartColors.text },
         formatMethod: (text: string) => `${text} t/s`,
       },
       axes: [
         {
           orient: 'left',
-          label: { style: { fill: textColor, fontSize: 10 } },
+          label: { style: { fill: chartColors.text, fontSize: 10 } },
           tick: { visible: false },
         },
         {
           orient: 'bottom',
-          label: { style: { fill: textColor, fontSize: 10 } },
+          label: { style: { fill: chartColors.text, fontSize: 10 } },
           grid: {
             visible: true,
-            style: { lineDash: [3, 3], stroke: gridColor },
+            style: { lineDash: [3, 3], stroke: chartColors.grid },
           },
         },
       ],
@@ -385,7 +365,7 @@ export function ThroughputBarChart(props: {
         },
       },
     }
-  }, [barRadius, filtered, gridColor, t, textColor])
+  }, [barRadius, chartColors, filtered, t])
 
   if (filtered.length === 0) {
     return null

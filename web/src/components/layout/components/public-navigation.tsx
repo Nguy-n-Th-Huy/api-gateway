@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 
 import { useTopNavLinks } from '@/hooks/use-top-nav-links'
 import { cn } from '@/lib/utils'
@@ -49,21 +49,32 @@ export function PublicNavigation({
   const defaultLinks = providedLinks || defaultTopNavLinks
   const links = dynamicLinks.length > 0 ? dynamicLinks : defaultLinks
 
+  // Derive active state from the current location; dynamic links carry no
+  // isActive flag, so path matching is the single source of truth.
+  const routerState = useRouterState()
+  const pathname = routerState.location.pathname
+
   return (
     <nav className={cn('hidden items-center gap-1 md:flex', className)}>
-      {links.map((link, index) => {
+      {links.map((link) => {
+        const isActive = pathname === link.href
+        const linkClassName = cn(
+          'rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden',
+          isActive
+            ? 'bg-accent text-accent-foreground font-semibold'
+            : 'text-muted-foreground hover:bg-accent/55 hover:text-foreground',
+          link.disabled && 'pointer-events-none opacity-40'
+        )
         // Handle external links
         if (link.external) {
           return (
             <a
-              key={index}
+              key={`${link.title}-${link.href}`}
               href={link.href}
               target='_blank'
               rel='noopener noreferrer'
-              className={cn(
-                'text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground inline-flex h-9 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors focus:outline-none',
-                link.disabled && 'pointer-events-none opacity-50'
-              )}
+              aria-disabled={link.disabled}
+              className={linkClassName}
             >
               {link.title}
             </a>
@@ -72,12 +83,11 @@ export function PublicNavigation({
         // Handle internal links
         return (
           <Link
-            key={index}
+            key={`${link.title}-${link.href}`}
             to={link.href}
-            className={cn(
-              'text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground inline-flex h-9 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors focus:outline-none',
-              link.disabled && 'pointer-events-none opacity-50'
-            )}
+            disabled={link.disabled}
+            aria-current={isActive ? 'page' : undefined}
+            className={linkClassName}
           >
             {link.title}
           </Link>

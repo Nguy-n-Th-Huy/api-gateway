@@ -32,10 +32,10 @@ import {
   getDynamicPricingSummary,
   isUnconfiguredTaskUsageModel,
 } from '../lib/dynamic-price'
-import { getTaskNumberFields } from '../lib/task-expr'
 import { parseTags } from '../lib/filters'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import { formatPrice, formatRequestPrice } from '../lib/price'
+import { getTaskNumberFields } from '../lib/task-expr'
 import type { PricingModel, TokenUnit } from '../types'
 import { ModelBillingModeBadge } from './model-billing-mode-badge'
 import { ModelPerfBadge, type ModelPerfBadgeData } from './model-perf-badge'
@@ -84,10 +84,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const dynamicSummary = isDynamicPricing
     ? getDynamicPricingSummary(props.model, dynamicPriceOptions)
     : null
-  const cardExamplePrice = getCardExamplePrice(
-    props.model,
-    dynamicPriceOptions
-  )
+  const cardExamplePrice = getCardExamplePrice(props.model, dynamicPriceOptions)
   const showTaskFieldLabels =
     getTaskNumberFields(props.model.billing_usage_schema).length > 1
 
@@ -108,7 +105,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
     if (dynamicSummary.isSpecialExpression) {
       priceSummary = (
         <span className='min-w-0'>
-          <span className='text-amber-700 dark:text-amber-300'>
+          <span className='text-warning'>
             {t('Special billing expression')}
           </span>
           <code className='text-muted-foreground/70 mt-0.5 line-clamp-1 block font-mono text-[11px] break-all'>
@@ -147,7 +144,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
             )
           })}
           {cardExamplePrice && (
-            <span className='text-muted-foreground/70 min-w-0 max-w-full truncate text-xs'>
+            <span className='text-muted-foreground/70 max-w-full min-w-0 truncate text-xs'>
               {cardExamplePrice.label} ≈ {cardExamplePrice.formatted}
             </span>
           )}
@@ -244,7 +241,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   return (
     <div
       className={cn(
-        'group relative flex flex-col rounded-xl border p-3 transition-colors sm:p-5',
+        'group bg-card border-border hover:border-primary/30 relative flex flex-col rounded-xl border p-3 transition-colors sm:p-5',
         'hover:bg-muted/20'
       )}
     >

@@ -19,16 +19,12 @@ For commercial licensing, please contact support@quantumnous.com
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@import '@fontsource-variable/public-sans';
-/* Editorial serif (Lora) backing the `serif` font axis and the Anthropic
- * preset's default typography. See `--font-serif` in theme.css for the
- * full Latin + CJK fallback stack and `theme-presets.css` for the cascade
- * that activates it. Loaded globally so font-switching is instantaneous
- * with no FOUT once the variable is fetched. */
-@import '@fontsource-variable/lora';
+/* Body face — Plus Jakarta Sans Variable (wght 200–800), driving --font-sans. */
+@import '@fontsource-variable/plus-jakarta-sans';
+/* Display face — Outfit Variable (wght 100–900), driving --font-display. */
+@import '@fontsource-variable/outfit';
 
 @import './theme.css';
-@import './theme-presets.css';
 
 /* Shiki dual themes: token colors follow dark theme (pre background stays `bg-background` on the block) */
 @layer components {
@@ -96,9 +92,8 @@ For commercial licensing, please contact support@quantumnous.com
   }
   body {
     @apply bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full;
-    /* Font is driven by the theme's font axis via `--font-body`
-     * (defined in theme.css, swapped by `[data-theme-font='...']` blocks
-     * in theme-presets.css). Defaults to the project's humanist sans. */
+    /* Body face is a single canonical font (Plus Jakarta Sans Variable) driven
+     * by the `--font-body` token, which always equals `--font-sans`. */
     font-family: var(--font-body);
   }
 
@@ -189,6 +184,31 @@ For commercial licensing, please contact support@quantumnous.com
   /* Hide scrollbar for IE, Edge and Firefox */
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
+}
+
+/* Touch-target floor (design-system spec): when the primary pointer is
+ * coarse (touch), interactive elements must present at least a 44x44
+ * CSS-px activatable area, even when drawn smaller. An invisible
+ * `::after` layer centered on the control expands the hit region without
+ * changing its visible size or layout. Apply it only under a coarse
+ * pointer, e.g. `pointer-coarse:touch-target-floor`, so pointer:fine
+ * (desktop) viewports are unaffected. */
+@utility touch-target-floor {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    /* Center the layer on the control so a hit area larger than the
+     * visible control expands symmetrically in every direction. */
+    transform: translate(-50%, -50%);
+    /* Floor: at least 44x44 CSS px (2.75rem), but never smaller than the
+     * control itself, so larger buttons keep their full footprint. */
+    width: max(2.75rem, 100%);
+    height: max(2.75rem, 100%);
+  }
 }
 
 /* Tooltip content can still scroll, but should not show a distracting axis. */

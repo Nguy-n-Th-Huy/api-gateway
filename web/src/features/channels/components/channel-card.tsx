@@ -109,7 +109,7 @@ function ChannelCardComponent({
         </div>
 
         {/* Body: left column (id/name + balance) paired with a right-aligned
-          column (priority/weight + response/test time). */}
+ column (priority/weight + response/test time). */}
         <div className='flex items-start justify-between gap-3'>
           {/* Left column */}
           <div className='flex min-w-0 flex-1 flex-col gap-3 overflow-hidden'>
@@ -134,8 +134,8 @@ function ChannelCardComponent({
           </div>
 
           {/* Right column (sits on the right, content left-aligned). A single
-            grid with content-sized columns keeps Priority/Weight and
-            Response/Last Tested aligned without wasting horizontal space. */}
+ grid with content-sized columns keeps Priority/Weight and
+ Response/Last Tested aligned without wasting horizontal space. */}
           <div className='grid shrink-0 grid-cols-[auto_auto] items-center gap-x-3 gap-y-1'>
             <span className={labelClass}>{t('Priority')}</span>
             <span className={labelClass}>{t('Weight')}</span>

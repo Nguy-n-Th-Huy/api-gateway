@@ -88,8 +88,8 @@ function PluginCardComponent({ row }: { row: Row<TaskPluginListItem> }) {
       </div>
 
       {/* Row 2: source + runtime badges next to the version pills, all wrapping
-        freely. The versions read as pills rather than labelled stats because
-        `v1.2.3` and `API v1` already name themselves. */}
+ freely. The versions read as pills rather than labelled stats because
+ `v1.2.3` and `API v1` already name themselves. */}
       <div className='flex flex-wrap items-center gap-1.5'>
         {renderCell('source')}
         {renderCell('runtime')}

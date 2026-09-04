@@ -39,9 +39,9 @@ import { aggregateUptime, type UptimeDayPoint } from '../lib/mock-stats'
 // ---------------------------------------------------------------------------
 //
 // Compact 30-day uptime visualisation: a row of small coloured bars where:
-//   - Bar colour reflects per-day uptime (green / amber / red)
-//   - Bar height reflects severity (the worse the day, the shorter the bar)
-//   - Hovering a bar reveals the exact date and uptime
+// - Bar colour reflects per-day uptime (green / amber / red)
+// - Bar height reflects severity (the worse the day, the shorter the bar)
+// - Hovering a bar reveals the exact date and uptime
 //
 // Useful as a header strip ("at-a-glance" status) and as a per-row visual
 // inside the per-group performance table.
@@ -165,12 +165,12 @@ export function UptimeStatusRow(props: {
 
   const statusColour =
     status === 'operational'
-      ? 'text-emerald-600 dark:text-emerald-400'
+      ? 'text-success'
       : status === 'minor'
-        ? 'text-emerald-600 dark:text-emerald-400'
+        ? 'text-success'
         : status === 'degraded'
-          ? 'text-amber-600 dark:text-amber-400'
-          : 'text-rose-600 dark:text-rose-400'
+          ? 'text-warning'
+          : 'text-destructive'
 
   const statusLabel =
     status === 'operational'

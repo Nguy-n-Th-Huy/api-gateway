@@ -26,7 +26,11 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <div
       data-slot='table-container'
-      className='relative w-full overflow-x-auto overflow-y-hidden'
+      // Scrollable regions must be keyboard reachable: tabIndex lets a
+      // keyboard user focus the container and scroll it with the arrow keys,
+      // and focus-visible:ring surfaces a visible focus while doing so.
+      tabIndex={0}
+      className='focus-visible:ring-ring relative w-full overflow-x-auto overflow-y-hidden focus-visible:ring-2 focus-visible:outline-none'
     >
       <table
         data-slot='table'
@@ -44,7 +48,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
   return (
     <thead
       data-slot='table-header'
-      className={cn('[&_tr]:border-b', className)}
+      className={cn('[&_tr]:border-b bg-muted/40', className)}
       {...props}
     />
   )
@@ -78,7 +82,7 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
     <tr
       data-slot='table-row'
       className={cn(
-        'group data-[state=selected]:bg-muted border-b transition-colors hover:[background-color:color-mix(in_oklch,var(--muted)_50%,var(--background))] has-aria-expanded:[background-color:color-mix(in_oklch,var(--muted)_50%,var(--background))]',
+        'group border-border/60 border-b transition-colors hover:bg-muted/60 has-aria-expanded:bg-muted/60 data-[state=selected]:bg-accent',
         className
       )}
       {...props}

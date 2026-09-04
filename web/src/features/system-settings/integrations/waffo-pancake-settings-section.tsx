@@ -385,18 +385,18 @@ export function WaffoPancakeSettingsSection({
       </div>
       <div className='grid min-w-0 gap-x-5 gap-y-4 lg:grid-cols-2'>
         {/* Blue box — webhook configuration only. */}
-        <div className='rounded-md bg-blue-50 p-4 text-sm text-blue-900 lg:col-span-2 dark:bg-blue-950 dark:text-blue-100'>
+        <div className='bg-info text-info rounded-md p-4 text-sm lg:col-span-2'>
           <p className='mb-2 font-medium'>{t('Webhook Configuration:')}</p>
           <ul className='list-inside list-disc space-y-1'>
             <li>
               {t('Webhook URL (Test):')}{' '}
-              <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
+              <code className='bg-info rounded px-1 py-0.5 text-xs'>
                 {'<ServerAddress>/api/waffo-pancake/webhook/test'}
               </code>
             </li>
             <li>
               {t('Webhook URL (Production):')}{' '}
-              <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
+              <code className='bg-info rounded px-1 py-0.5 text-xs'>
                 {'<ServerAddress>/api/waffo-pancake/webhook/prod'}
               </code>
             </li>
@@ -451,15 +451,15 @@ export function WaffoPancakeSettingsSection({
         </div>
 
         {/*
-          Binding section — split into two visually distinct paths:
-          (A) "Use existing" pair from the loaded catalog — only rendered when
-              the merchant actually has stores, so first-time setup isn't
-              cluttered by dead dropdowns.
-          (B) "Create a fresh pair" — always available, paired with the
-              return URL field that's only meaningful here.
-          The two paths are split by an "or" divider so the operator never has
-          to wonder which field belongs to which intent.
-        */}
+ Binding section — split into two visually distinct paths:
+ (A) "Use existing" pair from the loaded catalog — only rendered when
+ the merchant actually has stores, so first-time setup isn't
+ cluttered by dead dropdowns.
+ (B) "Create a fresh pair" — always available, paired with the
+ return URL field that's only meaningful here.
+ The two paths are split by an "or" divider so the operator never has
+ to wonder which field belongs to which intent.
+ */}
         <div className='space-y-4 pt-2 lg:col-span-2'>
           <div>
             <h4 className='font-medium'>
@@ -469,12 +469,12 @@ export function WaffoPancakeSettingsSection({
           </div>
 
           {/*
-              Operator-facing explainer: why only ONE store + product needs
-              to be bound at the gateway level, and what each piece is used
-              for. Subscriptions reuse the same Store but get their own
-              per-plan product, configured in the Subscriptions admin.
-            */}
-          <div className='rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-100'>
+ Operator-facing explainer: why only ONE store + product needs
+ to be bound at the gateway level, and what each piece is used
+ for. Subscriptions reuse the same Store but get their own
+ per-plan product, configured in the Subscriptions admin.
+ */}
+          <div className='border-info bg-info text-info rounded-md border p-3 text-xs'>
             <p className='mb-1 font-medium'>
               {t('Why only one store + product?')}
             </p>

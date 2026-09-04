@@ -91,7 +91,7 @@ export function PluginSourcePicker(props: PluginSourcePickerProps) {
         {props.fileName ? t('Choose another file') : t('Choose file')}
       </Button>
       {/* sr-only rather than hidden so the label stays reachable to a
-        screen reader and to userEvent.upload in tests. */}
+ screen reader and to userEvent.upload in tests. */}
       <label className='sr-only' htmlFor='task-plugin-file'>
         {t('JavaScript file')}
       </label>
