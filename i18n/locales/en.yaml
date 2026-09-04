@@ -78,6 +78,7 @@ user.require_2fa: "Please enter two-factor authentication code"
 user.email_verification_required: "Email verification is enabled, please enter email address and verification code"
 user.verification_code_error: "Verification code is incorrect or has expired"
 user.email_already_taken: "Email address is already in use"
+user.binding_removal_would_lock_account: "Removing this binding would leave the account with no password and no other way to sign in. The removal has been refused to protect the account."
 user.password_unset: "This account has no password set. Please use password reset or contact an administrator to reset it."
 user.password_reset_link_invalid: "Password reset link is invalid or has expired"
 user.input_invalid: "Invalid input {{.Error}}"
@@ -253,6 +254,8 @@ oauth.connect_failed: "Unable to connect to {{.Provider}} server, please try aga
 oauth.token_failed: "Failed to get token from {{.Provider}}, please check settings"
 oauth.user_info_empty: "{{.Provider}} returned empty user info, please check settings"
 oauth.trust_level_low: "Linux DO trust level does not meet the minimum required by administrator"
+oauth.legacy_identity_mismatch: "This account's email no longer matches the one on file, so sign-in has been refused to protect the account"
+oauth.legacy_identity_unverifiable: "We could not verify this account. Please contact support for help"
 
 # Model layer error messages
 redeem.failed: "Redemption failed, please try again later"

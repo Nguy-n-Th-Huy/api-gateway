@@ -888,6 +888,17 @@ func (user *User) ClearBinding(bindingType string) error {
 	}
 
 	if err := DB.Transaction(func(tx *gorm.DB) error {
+		// Lock and re-read the account inside the transaction so the guard below
+		// sees the current state and a concurrent clear cannot slip between the
+		// check and the write.
+		current := User{}
+		if err := lockForUpdate(tx).First(&current, user.Id).Error; err != nil {
+			return err
+		}
+		if !accountHasAnotherSignInMethod(&current, column) {
+			return ErrNoRemainingSignInMethod
+		}
+
 		if err := tx.Model(&User{}).Where("id = ?", user.Id).Update(column, "").Error; err != nil {
 			return err
 		}
@@ -904,6 +915,35 @@ func (user *User) ClearBinding(bindingType string) error {
 	}
 
 	return updateUserCache(*user)
+}
+
+// accountHasAnotherSignInMethod reports whether the account would still have
+// a way to sign in if clearingColumn were blanked: a non-empty password, or
+// any other binding column — including email, reachable through the email
+// verification flow — still holding a value.
+func accountHasAnotherSignInMethod(user *User, clearingColumn string) bool {
+	if user.Password != "" {
+		return true
+	}
+	columnValues := map[string]string{
+		"email":       user.Email,
+		"github_id":   user.GitHubId,
+		"google_id":   user.GoogleId,
+		"discord_id":  user.DiscordId,
+		"oidc_id":     user.OidcId,
+		"wechat_id":   user.WeChatId,
+		"telegram_id": user.TelegramId,
+		"linux_do_id": user.LinuxDOId,
+	}
+	for column, value := range columnValues {
+		if column == clearingColumn {
+			continue
+		}
+		if value != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (user *User) Delete() error {

@@ -796,6 +796,10 @@ func AdminClearUserBinding(c *gin.Context) {
 	}
 
 	if err := user.ClearBinding(bindingType); err != nil {
+		if errors.Is(err, model.ErrNoRemainingSignInMethod) {
+			common.ApiErrorI18n(c, i18n.MsgUserBindingRemovalWouldLockAccount)
+			return
+		}
 		common.ApiError(c, err)
 		return
 	}

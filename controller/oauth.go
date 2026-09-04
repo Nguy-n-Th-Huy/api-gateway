@@ -206,6 +206,10 @@ func HandleOAuth(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgUserRegisterDisabled)
 		case *OAuthEmailAlreadyTakenError:
 			common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
+		case *OAuthLegacyIdentityMismatchError:
+			common.ApiErrorI18n(c, i18n.MsgOAuthLegacyIdentityMismatch)
+		case *OAuthLegacyIdentityUnverifiableError:
+			common.ApiErrorI18n(c, i18n.MsgOAuthLegacyIdentityUnverifiable)
 		default:
 			common.ApiError(c, err)
 		}
@@ -313,12 +317,34 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 				return nil, err
 			}
 			if user.Id != 0 {
-				// Found user with legacy ID, migrate to new ID
-				common.SysLog(fmt.Sprintf("[OAuth] Migrating user %d from legacy_id=%s to new_id=%s",
-					user.Id, legacyID, oauthUser.ProviderUserID))
+				// A legacy identifier is a released upstream name, not a stable ID:
+				// the provider does not reserve it after a rename, so a stranger can
+				// register it later and would otherwise sign straight into this
+				// account. Require the provider-reported email to equal the email
+				// already on file before trusting the match. Neither side's DB state
+				// has been written yet, so refusing here leaves the matched account
+				// completely untouched.
+				incomingEmail := model.NormalizeEmail(oauthUser.Email)
+				storedEmail := model.NormalizeEmail(user.Email)
+				if incomingEmail == "" || storedEmail == "" {
+					common.SysLog(fmt.Sprintf("[OAuth] Refused legacy_id match for user %d (legacy_id=%s, new_id=%s): email missing on one side",
+						user.Id, legacyID, oauthUser.ProviderUserID))
+					return nil, &OAuthLegacyIdentityUnverifiableError{}
+				}
+				if incomingEmail != storedEmail {
+					common.SysLog(fmt.Sprintf("[OAuth] Refused legacy_id match for user %d (legacy_id=%s, new_id=%s): email mismatch",
+						user.Id, legacyID, oauthUser.ProviderUserID))
+					return nil, &OAuthLegacyIdentityMismatchError{}
+				}
+
+				// Corroborated by email: found user with legacy ID, migrate to new ID.
 				if err := user.UpdateGitHubId(oauthUser.ProviderUserID); err != nil {
-					common.SysError(fmt.Sprintf("[OAuth] Failed to migrate user %d: %s", user.Id, err.Error()))
+					common.SysError(fmt.Sprintf("[OAuth] Failed to migrate user %d from legacy_id=%s to new_id=%s: %s",
+						user.Id, legacyID, oauthUser.ProviderUserID, err.Error()))
 					// Continue with login even if migration fails
+				} else {
+					model.RecordLog(user.Id, model.LogTypeSystem, fmt.Sprintf(
+						"OAuth identity migrated: legacy_id=%s -> new_id=%s", legacyID, oauthUser.ProviderUserID))
 				}
 				return user, nil
 			}
@@ -446,6 +472,25 @@ type OAuthEmailAlreadyTakenError struct{}
 
 func (e *OAuthEmailAlreadyTakenError) Error() string {
 	return "email is already in use"
+}
+
+// OAuthLegacyIdentityMismatchError is returned when a legacy (name-based)
+// identifier matches an account, but the provider reports an email different
+// from the one stored on that account. The upstream name was released and
+// re-registered by someone else; the match is refused rather than trusted.
+type OAuthLegacyIdentityMismatchError struct{}
+
+func (e *OAuthLegacyIdentityMismatchError) Error() string {
+	return "legacy identity email does not match the account on file"
+}
+
+// OAuthLegacyIdentityUnverifiableError is returned when a legacy identifier
+// matches an account but either the provider or the account has no email to
+// corroborate the match with.
+type OAuthLegacyIdentityUnverifiableError struct{}
+
+func (e *OAuthLegacyIdentityUnverifiableError) Error() string {
+	return "legacy identity cannot be verified"
 }
 
 // handleOAuthError handles OAuth errors and returns translated message

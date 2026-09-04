@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import {
   IconDiscord,
   IconGithub,
+  IconGoogle,
   IconLinuxDo,
   IconTelegram,
   IconWeChat,
@@ -103,6 +104,7 @@ export function OAuthProviders({
       key: 'google',
       label: t('Continue with Google'),
       onClick: handleGoogleLogin,
+      icon: <IconGoogle className='h-4 w-4' aria-hidden='true' />,
     })
   }
 
