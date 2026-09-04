@@ -195,7 +195,7 @@ docker run --name new-api -d --restart always \
 
 ### 💰 授權用量與成本管理
 
-- ✅ 合法授權場景下的內部儲值與額度分配（易支付、Stripe）
+- ✅ 合法授權場景下的內部儲值與額度分配（SePay 银行转账、VietQR）
 - ✅ 組織內按次、按量或快取命中成本核算
 - ✅ 支援 OpenAI、Azure、DeepSeek、Claude、Qwen 等模型的快取計費統計
 - ✅ 面向內部管理或企業客戶的靈活計費策略配置

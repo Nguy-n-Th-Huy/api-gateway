@@ -23,17 +23,6 @@ import { DEFAULT_DISCOUNT_RATE } from '../constants'
 // ============================================================================
 
 /**
- * Format Creem price with currency symbol (USD/EUR)
- */
-export function formatCreemPrice(
-  price: number,
-  currency: 'USD' | 'EUR'
-): string {
-  const symbol = currency === 'EUR' ? '€' : '$'
-  return `${symbol}${price.toFixed(2)}`
-}
-
-/**
  * Format large quota numbers with K/M suffix
  */
 export function formatQuotaShort(quota: number): string {
@@ -47,18 +36,14 @@ export function formatQuotaShort(quota: number): string {
 }
 
 /**
- * Format currency amount that is already in local currency.
- * This is used for payment amounts that have been calculated via priceRatio.
+ * Format an amount of Vietnamese Dong as a whole number with grouping.
+ * SePay settles exclusively in whole Dong, so no fractional digits are shown.
  */
-export function formatCurrency(amount: number | string): string {
-  const numeric =
-    typeof amount === 'number' ? amount : Number.parseFloat(String(amount))
-  if (!Number.isFinite(numeric)) return '-'
-
+export function formatVND(amount: number | null | undefined): string {
+  if (amount == null || !Number.isFinite(amount)) return '-'
   return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: Math.abs(numeric) >= 1 ? 2 : 4,
-  }).format(numeric)
+    maximumFractionDigits: 0,
+  }).format(amount)
 }
 
 /**
@@ -70,28 +55,4 @@ export function getDiscountLabel(discount: number): string {
   }
   const off = Math.round((1 - discount) * 100)
   return `${off}% OFF`
-}
-
-/**
- * Calculate pricing details for a preset amount
- */
-export function calculatePresetPricing(
-  presetValue: number,
-  priceRatio: number,
-  discount: number,
-  usdExchangeRate: number = 1
-) {
-  const originalPrice = presetValue * priceRatio
-  const actualPrice = originalPrice * discount
-  const savedAmount = originalPrice - actualPrice
-  const hasDiscount = discount < 1.0
-  const displayValue = presetValue * usdExchangeRate
-
-  return {
-    displayValue,
-    originalPrice,
-    actualPrice,
-    savedAmount,
-    hasDiscount,
-  }
 }

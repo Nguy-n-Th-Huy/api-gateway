@@ -17,165 +17,50 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import {
-  PAYMENT_TYPES,
   DEFAULT_PRESET_MULTIPLIERS,
-  DEFAULT_PAYMENT_TYPE,
   DEFAULT_MIN_TOPUP,
+  SEPAY_MAX_TOPUP,
 } from '../constants'
-import type { PaymentMethod, PresetAmount, TopupInfo } from '../types'
+import type { PresetAmount, SePayOrder, TopupInfo } from '../types'
 
 // ============================================================================
-// Payment Processing Functions
+// Payment Processing Functions (SePay — the single provider)
 // ============================================================================
 
 /**
- * Check if browser is Safari
+ * Check if SePay top-up is offered (compliance confirmed + gateway available).
  */
-function isSafariBrowser(): boolean {
-  return (
-    navigator.userAgent.includes('Safari') &&
-    !navigator.userAgent.includes('Chrome')
-  )
-}
-
-/**
- * Submit payment form (for non-Stripe payments)
- */
-export function submitPaymentForm(
-  url: string,
-  params: Record<string, unknown>
-): void {
-  const form = document.createElement('form')
-  form.action = url
-  form.method = 'POST'
-
-  // Don't open in new tab for Safari
-  if (!isSafariBrowser()) {
-    form.target = '_blank'
-  }
-
-  // Add form parameters
-  Object.entries(params).forEach(([key, value]) => {
-    const input = document.createElement('input')
-    input.type = 'hidden'
-    input.name = key
-    input.value = String(value)
-    form.appendChild(input)
-  })
-
-  document.body.appendChild(form)
-  form.submit()
-  document.body.removeChild(form)
-}
-
-/**
- * Check if payment method is Stripe
- */
-export function isStripePayment(paymentType: string): boolean {
-  return paymentType === PAYMENT_TYPES.STRIPE
-}
-
-/**
- * Check if payment method is Waffo
- */
-export function isWaffoPayment(paymentType: string): boolean {
-  return paymentType === PAYMENT_TYPES.WAFFO
-}
-
-/**
- * Check if payment method is Waffo Pancake
- *
- * Pancake is a metered-style payment that goes through a dedicated checkout
- * URL flow rather than the generic epay form submission, so it must be
- * special-cased in payment dispatch logic.
- */
-export function isWaffoPancakePayment(paymentType: string): boolean {
-  return paymentType === PAYMENT_TYPES.WAFFO_PANCAKE
-}
-
-export interface PaymentProcessors {
-  regular: (topupAmount: number, paymentType: string) => Promise<boolean>
-  waffo: (topupAmount: number, payMethodIndex: number) => Promise<boolean>
-  waffoPancake: (topupAmount: number) => Promise<boolean>
-}
-
-export async function dispatchSelectedPayment(
-  paymentMethod: PaymentMethod,
-  topupAmount: number,
-  waffoMethodIndex: number | null,
-  processors: PaymentProcessors
-): Promise<boolean> {
-  if (isWaffoPayment(paymentMethod.type)) {
-    if (waffoMethodIndex === null) {
-      return false
-    }
-    return processors.waffo(topupAmount, waffoMethodIndex)
-  }
-
-  if (isWaffoPancakePayment(paymentMethod.type)) {
-    return processors.waffoPancake(topupAmount)
-  }
-
-  return processors.regular(topupAmount, paymentMethod.type)
-}
-
-/**
- * Get default payment type from topup info
- */
-export function getDefaultPaymentType(topupInfo: TopupInfo | null): string {
+export function isSePayAvailable(topupInfo: TopupInfo | null): boolean {
   if (!topupInfo) {
-    return DEFAULT_PAYMENT_TYPE
+    return false
   }
-
-  // Return first available payment method or default
-  if (topupInfo.pay_methods?.length > 0) {
-    return topupInfo.pay_methods[0].type
+  if (topupInfo.payment_compliance_confirmed === false) {
+    return false
   }
-
-  if (topupInfo.enable_stripe_topup) {
-    return PAYMENT_TYPES.STRIPE
-  }
-
-  if (topupInfo.enable_waffo_topup) {
-    return PAYMENT_TYPES.WAFFO
-  }
-
-  if (topupInfo.enable_waffo_pancake_topup) {
-    return PAYMENT_TYPES.WAFFO_PANCAKE
-  }
-
-  return DEFAULT_PAYMENT_TYPE
+  return topupInfo.enable_sepay_topup === true || topupInfo.enable_online_topup === true
 }
 
 /**
- * Get minimum topup amount from topup info
+ * Get minimum topup amount from topup info.
  */
 export function getMinTopupAmount(topupInfo: TopupInfo | null): number {
   if (!topupInfo) {
     return DEFAULT_MIN_TOPUP
   }
 
-  if (topupInfo.enable_online_topup) {
-    return topupInfo.min_topup
-  }
-
-  if (topupInfo.enable_stripe_topup) {
-    return topupInfo.stripe_min_topup
-  }
-
-  if (topupInfo.enable_waffo_topup) {
-    return topupInfo.waffo_min_topup || DEFAULT_MIN_TOPUP
-  }
-
-  if (topupInfo.enable_waffo_pancake_topup) {
-    return topupInfo.waffo_pancake_min_topup || DEFAULT_MIN_TOPUP
-  }
-
-  return DEFAULT_MIN_TOPUP
+  const minTopup = topupInfo.sepay_min_topup ?? topupInfo.min_topup
+  return minTopup && minTopup > 0 ? minTopup : DEFAULT_MIN_TOPUP
 }
 
 /**
- * Generate preset amounts based on minimum topup
+ * Maximum topup amount accepted for a single order.
+ */
+export function getMaxTopupAmount(): number {
+  return SEPAY_MAX_TOPUP
+}
+
+/**
+ * Generate preset amounts based on minimum topup.
  */
 export function generatePresetAmounts(minAmount: number): PresetAmount[] {
   return DEFAULT_PRESET_MULTIPLIERS.map((multiplier) => ({
@@ -184,7 +69,7 @@ export function generatePresetAmounts(minAmount: number): PresetAmount[] {
 }
 
 /**
- * Merge custom preset amounts with discounts
+ * Merge custom preset amounts with discounts.
  */
 export function mergePresetAmounts(
   amountOptions: number[],
@@ -198,4 +83,54 @@ export function mergePresetAmounts(
     value: amount,
     discount: discounts[amount] || 1.0,
   }))
+}
+
+/**
+ * Live preview of payable Dong for `amount` USD of balance, using the same
+ * displayed calculation the backend applies when inserting an order (spec
+ * "Currency conversion" and controller `sePayPayMoneyFromDecimal`):
+ * `payable_vnd = round(amount × price × topup_group_ratio × discount)`.
+ *
+ * `price` is the VND-per-USD price from `TopupInfo.price`. `discount` is the
+ * tiered preset discount for `amount`, default 1.0.
+ *
+ * The user's top-up group ratio is not exposed to the client (it is an admin
+ * setting keyed by group), so the preview omits it and the authoritative
+ * payable amount is the one returned by order creation. Returns null when the
+ * inputs cannot produce a positive whole-Dong amount.
+ */
+export function calculatePayableVNDPreview(params: {
+  amount: number
+  price: number
+  discount?: number
+}): number | null {
+  const { amount, price } = params
+  if (!Number.isFinite(amount) || amount <= 0) return null
+  if (!Number.isFinite(price) || price <= 0) return null
+  const discount =
+    params.discount && params.discount > 0 && params.discount <= 1
+      ? params.discount
+      : 1
+  const payable = Math.round(amount * price * discount)
+  return payable > 0 ? payable : null
+}
+
+/**
+ * Build the per-order VietQR image URL carrying the order's own payable amount
+ * and memo.
+ *
+ * Mirrors the backend's `buildSePayVietQRURL`:
+ * `https://img.vietqr.io/image/{BANK_CODE}-{ACCOUNT_NO}-compact2.png?amount={PAYABLE_VND}&addInfo={MEMO}&accountName={HOLDER}`.
+ */
+export function buildSePayVietQRURL(order: SePayOrder): string {
+  if (order.vietqr_url) {
+    return order.vietqr_url
+  }
+  const enc = encodeURIComponent
+  const params = new URLSearchParams({
+    amount: String(order.payable_vnd ?? 0),
+    addInfo: order.memo ?? order.trade_no ?? '',
+    accountName: order.account_holder ?? '',
+  })
+  return `https://img.vietqr.io/image/${enc(order.bank_code ?? '')}-${enc(order.bank_account ?? '')}-compact2.png?${params.toString()}`
 }

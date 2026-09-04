@@ -27,33 +27,16 @@ For commercial licensing, please contact support@quantumnous.com
 export const DEFAULT_PRESET_MULTIPLIERS = [1, 5, 10, 30, 50, 100, 300, 500]
 
 /**
- * Payment method types
+ * Maximum single top-up amount. Mirrors the backend's `sePayMaxTopUpAmount`
+ * (task 3.1): a request above this bound is rejected without creating an
+ * order.
  */
-export const PAYMENT_TYPES = {
-  ALIPAY: 'alipay',
-  WECHAT: 'wxpay',
-  STRIPE: 'stripe',
-  CREEM: 'creem',
-  WAFFO: 'waffo',
-  WAFFO_PANCAKE: 'waffo_pancake',
-} as const
+export const SEPAY_MAX_TOPUP = 9999
 
 /**
- * Default payment type
+ * Fixed polling interval for `useSePayOrderPolling`.
  */
-export const DEFAULT_PAYMENT_TYPE = PAYMENT_TYPES.ALIPAY
-
-/**
- * Payment icon colors (HEX format for react-icons)
- */
-export const PAYMENT_ICON_COLORS = {
-  [PAYMENT_TYPES.ALIPAY]: '#1677FF',
-  [PAYMENT_TYPES.WECHAT]: '#07C160',
-  [PAYMENT_TYPES.STRIPE]: '#635BFF',
-  [PAYMENT_TYPES.CREEM]: '#6366F1',
-  [PAYMENT_TYPES.WAFFO]: '#2563EB',
-  [PAYMENT_TYPES.WAFFO_PANCAKE]: '#F97316',
-} as const
+export const SEPAY_POLL_INTERVAL_MS = 3000
 
 /**
  * Default discount rate (no discount)

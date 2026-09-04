@@ -59,19 +59,13 @@ import type {
 import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import type { PaymentMethod, TopupInfo } from '../types'
+import type { TopupInfo } from '../types'
 
 interface SubscriptionPlansCardProps {
   topupInfo: TopupInfo | null
   onAvailabilityChange?: (available: boolean) => void
   userQuota?: number
   onPurchaseSuccess?: () => void | Promise<void>
-}
-
-function getEpayMethods(payMethods: PaymentMethod[] = []): PaymentMethod[] {
-  return payMethods.filter(
-    (m) => m?.type && m.type !== 'stripe' && m.type !== 'creem'
-  )
 }
 
 function getBillingPreferenceLabel(
@@ -115,14 +109,7 @@ export function SubscriptionPlansCard({
   const [purchaseOpen, setPurchaseOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<PlanRecord | null>(null)
 
-  const enableStripe = !!topupInfo?.enable_stripe_topup
-  const enableCreem = !!topupInfo?.enable_creem_topup
-  const enableWaffoPancake = !!topupInfo?.enable_waffo_pancake_topup
-  const enableOnlineTopUp = !!topupInfo?.enable_online_topup
-  const epayMethods = useMemo(
-    () => getEpayMethods(topupInfo?.pay_methods),
-    [topupInfo?.pay_methods]
-  )
+  const enableSePay = !!topupInfo?.enable_sepay_topup || !!topupInfo?.enable_online_topup
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -640,11 +627,7 @@ export function SubscriptionPlansCard({
           }
         }}
         plan={selectedPlan}
-        enableStripe={enableStripe}
-        enableCreem={enableCreem}
-        enableWaffoPancake={enableWaffoPancake}
-        enableOnlineTopUp={enableOnlineTopUp}
-        epayMethods={epayMethods}
+        enableSePay={enableSePay}
         userQuota={userQuota}
         onPurchaseSuccess={onPurchaseSuccess}
         purchaseLimit={

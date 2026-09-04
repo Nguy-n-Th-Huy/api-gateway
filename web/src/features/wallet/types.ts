@@ -30,126 +30,86 @@ export interface ApiResponse<T = unknown> {
 }
 
 /**
- * Standard API response types
+ * SePay order lifecycle status. Mirrors the backend top-up statuses that the
+ * order-status endpoint reports.
  */
-export type TopupInfoResponse = ApiResponse<TopupInfo>
-export type RedemptionResponse = ApiResponse<number>
-export type AmountResponse = ApiResponse<string>
-export type PaymentResponse = ApiResponse<Record<string, unknown>> & {
-  url?: string
-}
-export type StripePaymentResponse = ApiResponse<{ pay_link: string }>
-export type AffiliateCodeResponse = ApiResponse<string>
-export type AffiliateTransferResponse = ApiResponse
-export type CreemPaymentResponse = ApiResponse<{ checkout_url: string }>
-export type WaffoPaymentResponse = ApiResponse<
-  { payment_url?: string } | string
->
-export type WaffoPancakePaymentResponse = ApiResponse<
-  | {
-      checkout_url?: string
-      session_id?: string
-      expires_at?: number | string
-      order_id?: string
-      // Self-service session token + expiry — surfaced by the backend so
-      // future flows (refund / cancel from new-api's own UI) can use them
-      // without re-issuing checkout. Not consumed by the current handler.
-      token?: string
-      token_expires_at?: number | string
-    }
-  | string
->
+export type SePayOrderStatus = 'pending' | 'success' | 'expired'
 
 /**
- * Creem product configuration
+ * SePay order payload returned by both order creation and order status.
+ *
+ * The creation endpoints (POST /api/user/sepay/pay and
+ * POST /api/subscription/sepay/pay) return a pending order; the status
+ * endpoint (GET /api/user/sepay/order/:trade_no) returns the same shape with
+ * `status` reflecting the current lifecycle state. The payable amount and the
+ * transfer memo are frozen at order creation.
  */
-export interface CreemProduct {
-  /** Product display name */
-  name: string
-  /** Creem product ID */
-  productId: string
-  /** Product price */
-  price: number
-  /** Quota amount to credit */
-  quota: number
-  /** Currency (USD or EUR) */
-  currency: 'USD' | 'EUR'
+export interface SePayOrder {
+  /** Unique trade number; also the transfer memo the user must include */
+  trade_no: string
+  /** Transfer memo (equals trade_no) required as the bank transfer note */
+  memo: string
+  /** Payable amount in whole Vietnamese Dong, frozen at creation */
+  payable_vnd: number
+  /** Destination bank account number */
+  bank_account: string
+  /** Destination bank code used to build the VietQR image */
+  bank_code: string
+  /** Destination account holder name */
+  account_holder: string
+  /** Per-order VietQR image URL carrying amount and memo */
+  vietqr_url: string
+  /** Creation timestamp (unix seconds) */
+  create_time: number
+  /** Expiry timestamp (unix seconds) */
+  expire_time: number
+  /** Current order status */
+  status?: SePayOrderStatus
+  /** Credited/display money amount */
+  money?: number
 }
 
 /**
- * Creem payment request
+ * SePay top-up order creation request. The subscription endpoint instead
+ * takes a plan id.
  */
-export interface CreemPaymentRequest {
-  /** Creem product ID */
-  product_id: string
-  /** Payment method identifier */
-  payment_method: 'creem'
+export interface SePayPaymentRequest {
+  amount: number
 }
 
-/**
- * Payment method configuration
- */
-export interface PaymentMethod {
-  /** Display name of payment method */
-  name: string
-  /** Payment method type identifier */
-  type: string
-  /** Legacy optional color for UI display */
-  color?: string
-  /** Minimum topup amount for this payment method */
-  min_topup?: number
-  /** Optional react-icons component name or safe icon URL */
-  icon?: string
-}
+export type SePayPaymentResponse = ApiResponse<SePayOrder>
+export type SePayOrderStatusResponse = ApiResponse<SePayOrder>
 
 /**
- * Waffo payment method configuration
- */
-export interface WaffoPayMethod {
-  /** Display name of payment method */
-  name: string
-  /** Optional icon path */
-  icon?: string
-  /** Waffo pay method type */
-  payMethodType?: string
-  /** Waffo pay method name */
-  payMethodName?: string
-}
-
-/**
- * Topup configuration information
+ * Topup configuration information reported by the top-up info endpoint. After
+ * the consolidation onto SePay only the SePay availability/settings plus the
+ * shared pricing settings remain.
  */
 export interface TopupInfo {
-  /** Whether online topup is enabled */
-  enable_online_topup: boolean
-  /** Whether Stripe topup is enabled */
-  enable_stripe_topup: boolean
-  /** Available payment methods */
-  pay_methods: PaymentMethod[]
-  /** Minimum topup amount for online topup */
+  /** Whether online (SePay) top-up is enabled */
+  enable_online_topup?: boolean
+  /** Whether SePay bank-transfer top-up is available */
+  enable_sepay_topup?: boolean
+  /** Destination bank account number for SePay transfers */
+  sepay_bank_account?: string
+  /** Destination bank code for SePay transfers */
+  sepay_bank_code?: string
+  /** Destination account holder name for SePay transfers */
+  sepay_account_holder?: string
+  /** SePay-specific minimum top-up amount */
+  sepay_min_topup?: number
+  /** How long a pending SePay order stays payable, in minutes */
+  sepay_order_expiry_minutes?: number
+  /** Minimum top-up amount */
   min_topup: number
-  /** Minimum topup amount for Stripe */
-  stripe_min_topup: number
+  /** Local-currency (VND) price per one USD of credited balance */
+  price?: number
   /** Preset amount options */
   amount_options: number[]
   /** Discount rates by amount */
   discount: Record<number, number>
   /** Optional topup link for purchasing codes */
   topup_link?: string
-  /** Whether Creem topup is enabled */
-  enable_creem_topup?: boolean
-  /** Available Creem products */
-  creem_products?: CreemProduct[]
-  /** Whether Waffo topup is enabled */
-  enable_waffo_topup?: boolean
-  /** Available Waffo payment methods */
-  waffo_pay_methods?: WaffoPayMethod[]
-  /** Minimum topup amount for Waffo */
-  waffo_min_topup?: number
-  /** Whether Waffo Pancake topup is enabled */
-  enable_waffo_pancake_topup?: boolean
-  /** Minimum topup amount for Waffo Pancake */
-  waffo_pancake_min_topup?: number
   /** Whether redemption code usage is enabled */
   enable_redemption?: boolean
   /** Whether compliance confirmation has been completed */
@@ -157,6 +117,14 @@ export interface TopupInfo {
   /** Current compliance terms version */
   payment_compliance_terms_version?: string
 }
+
+/**
+ * Standard API response types
+ */
+export type TopupInfoResponse = ApiResponse<TopupInfo>
+export type RedemptionResponse = ApiResponse<number>
+export type AffiliateCodeResponse = ApiResponse<string>
+export type AffiliateTransferResponse = ApiResponse
 
 /**
  * Preset amount option with optional discount
@@ -174,42 +142,6 @@ export interface PresetAmount {
 export interface RedemptionRequest {
   /** Redemption code key */
   key: string
-}
-
-/**
- * Payment request parameters
- */
-export interface PaymentRequest {
-  /** Topup amount */
-  amount: number
-  /** Payment method identifier */
-  payment_method: string
-}
-
-/**
- * Waffo payment request parameters
- */
-export interface WaffoPaymentRequest {
-  /** Topup amount */
-  amount: number
-  /** Optional server-side Waffo payment method index */
-  pay_method_index?: number
-}
-
-/**
- * Waffo Pancake payment request parameters
- */
-export interface WaffoPancakePaymentRequest {
-  /** Topup amount */
-  amount: number
-}
-
-/**
- * Amount calculation request
- */
-export interface AmountRequest {
-  /** Topup amount to calculate */
-  amount: number
 }
 
 /**

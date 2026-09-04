@@ -41,9 +41,6 @@ export const subscriptionPlanSchema = z.object({
   total_amount: z.number(),
   upgrade_group: z.string().optional(),
   downgrade_group: z.string().optional(),
-  stripe_price_id: z.string().optional(),
-  creem_product_id: z.string().optional(),
-  waffo_pancake_product_id: z.string().optional(),
 })
 
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>
@@ -91,27 +88,22 @@ export interface PlanPayload {
 
 export interface SubscriptionPayRequest {
   plan_id: number
-  payment_method?: string
 }
 
-export interface SubscriptionPayResponse {
+export interface BalancePayResponse {
   success: boolean
   message?: string
-  data?: {
-    // Stripe-style hosted checkout link.
-    pay_link?: string
-    // Waffo Pancake / Creem hosted checkout URL.
-    checkout_url?: string
-    // Pancake-only: order metadata + self-service buyer session token,
-    // surfaced for future flows (refund / cancel from new-api's own UI).
-    session_id?: string
-    expires_at?: number | string
-    order_id?: string
-    token?: string
-    token_expires_at?: number | string
-  }
-  url?: string
 }
+
+/**
+ * SePay subscription order creation returns the same order payload as the
+ * wallet top-up flow: trade number, transfer memo, payable Dong, destination
+ * bank details, VietQR image URL, and expiry.
+ */
+export type { SePayOrder, SePayOrderStatus } from '@/features/wallet/types'
+export type SePaySubscriptionPayResponse = ApiResponse<
+  import('@/features/wallet/types').SePayOrder
+>
 
 export interface CreateUserSubscriptionRequest {
   plan_id: number

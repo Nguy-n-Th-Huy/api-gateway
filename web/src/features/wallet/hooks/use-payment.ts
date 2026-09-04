@@ -17,152 +17,80 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import i18next from 'i18next'
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
-import {
-  calculateAmount,
-  calculateStripeAmount,
-  calculateWaffoAmount,
-  calculateWaffoPancakeAmount,
-  requestPayment,
-  requestStripePayment,
-  isApiSuccess,
-} from '../api'
-import {
-  isStripePayment,
-  isWaffoPayment,
-  isWaffoPancakePayment,
-  submitPaymentForm,
-} from '../lib'
-import type { AmountRequest, AmountResponse } from '../types'
+import { requestSePayTopUp, isApiSuccess } from '../api'
+import { isSePayAvailable } from '../lib'
+import type { SePayOrder, TopupInfo } from '../types'
 
 // ============================================================================
-// Payment Hook
+// Payment Hook (SePay — the single provider)
 // ============================================================================
 
-type AmountCalculator = (request: AmountRequest) => Promise<AmountResponse>
-
-export interface PaymentAmountCalculators {
-  regular: AmountCalculator
-  stripe: AmountCalculator
-  waffo: AmountCalculator
-  waffoPancake: AmountCalculator
+export interface UsePaymentReturn {
+  /** The pending SePay order, or null before creation / after clear. */
+  order: SePayOrder | null
+  /** Whether an order-creation request is in flight. */
+  processing: boolean
+  /**
+   * Validate the amount client-side and create a pending SePay top-up order.
+   * Returns the created order, or null on validation failure or API error.
+   */
+  createOrder: (amount: number) => Promise<SePayOrder | null>
+  /** Clear the held order (e.g. after a settled panel is dismissed). */
+  clearOrder: () => void
 }
 
-const defaultPaymentAmountCalculators: PaymentAmountCalculators = {
-  regular: calculateAmount,
-  stripe: calculateStripeAmount,
-  waffo: calculateWaffoAmount,
-  waffoPancake: calculateWaffoPancakeAmount,
-}
-
-export async function requestPaymentAmount(
-  topupAmount: number,
-  paymentType: string,
-  calculators: PaymentAmountCalculators = defaultPaymentAmountCalculators
-): Promise<number> {
-  let calculator = calculators.regular
-  if (isStripePayment(paymentType)) {
-    calculator = calculators.stripe
-  } else if (isWaffoPayment(paymentType)) {
-    calculator = calculators.waffo
-  } else if (isWaffoPancakePayment(paymentType)) {
-    calculator = calculators.waffoPancake
-  }
-
-  const response = await calculator({ amount: topupAmount })
-  if (!isApiSuccess(response) || !response.data) {
-    return 0
-  }
-
-  return Number.parseFloat(response.data)
-}
-
-export function usePayment() {
-  const [amount, setAmount] = useState<number>(0)
-  const [calculating, setCalculating] = useState(false)
+/**
+ * Manages the SePay top-up order lifecycle.
+ *
+ * The amount itself is owned by the caller (the wallet page) so a single
+ * source of truth drives both the live payable preview and order creation.
+ * This hook performs the client-side guards (availability + positive integer
+ * amount) and then calls the backend, which independently re-validates the
+ * amount against the configured minimum, the per-order bound, and the wallet
+ * capacity limit.
+ */
+export function usePayment(topupInfo: TopupInfo | null): UsePaymentReturn {
+  const [order, setOrder] = useState<SePayOrder | null>(null)
   const [processing, setProcessing] = useState(false)
 
-  // Calculate payment amount
-  const calculatePaymentAmount = useCallback(
-    async (topupAmount: number, paymentType: string) => {
-      try {
-        setCalculating(true)
-        const calculatedAmount = await requestPaymentAmount(
-          topupAmount,
-          paymentType
-        )
-        setAmount(calculatedAmount)
-        return calculatedAmount
-      } catch {
-        setAmount(0)
-        return 0
-      } finally {
-        setCalculating(false)
+  const clearOrder = useCallback(() => setOrder(null), [])
+
+  const createOrder = useCallback(
+    async (amount: number): Promise<SePayOrder | null> => {
+      if (topupInfo && !isSePayAvailable(topupInfo)) {
+        toast.error(i18next.t('Online top-up is not available'))
+        return null
       }
-    },
-    []
-  )
+      if (!Number.isInteger(amount) || amount <= 0) {
+        toast.error(i18next.t('Please enter a valid whole-number amount'))
+        return null
+      }
 
-  // Process payment
-  const processPayment = useCallback(
-    async (topupAmount: number, paymentType: string) => {
+      setProcessing(true)
       try {
-        setProcessing(true)
-
-        const isStripe = isStripePayment(paymentType)
-        const amount = Math.floor(topupAmount)
-
-        const response = isStripe
-          ? await requestStripePayment({
-              amount,
-              payment_method: 'stripe',
-            })
-          : await requestPayment({
-              amount,
-              payment_method: paymentType,
-            })
-
-        if (!isApiSuccess(response)) {
-          toast.error(response.message || i18next.t('Payment request failed'))
-          return false
+        const response = await requestSePayTopUp(amount)
+        if (!isApiSuccess(response) || !response.data) {
+          const message =
+            response.message && String(response.message).trim().length > 0
+              ? String(response.message)
+              : i18next.t('Failed to create payment order')
+          toast.error(message)
+          return null
         }
-
-        // Handle Stripe payment
-        if (isStripe && response.data?.pay_link) {
-          window.open(response.data.pay_link as string, '_blank')
-          toast.success(i18next.t('Redirecting to payment page...'))
-          return true
-        }
-
-        // Handle non-Stripe payment
-        if (!isStripe && response.data) {
-          const url = (response as unknown as { url?: string }).url
-          if (url) {
-            submitPaymentForm(url, response.data)
-            toast.success(i18next.t('Redirecting to payment page...'))
-            return true
-          }
-        }
-
-        return false
+        setOrder(response.data)
+        return response.data
       } catch {
-        toast.error(i18next.t('Payment request failed'))
-        return false
+        toast.error(i18next.t('Failed to create payment order'))
+        return null
       } finally {
         setProcessing(false)
       }
     },
-    []
+    [topupInfo]
   )
 
-  return {
-    amount,
-    calculating,
-    processing,
-    calculatePaymentAmount,
-    processPayment,
-    setAmount,
-  }
+  return { order, processing, createOrder, clearOrder }
 }

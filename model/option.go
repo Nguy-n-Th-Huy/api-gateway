@@ -1,6 +1,8 @@
 package model
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -86,52 +88,22 @@ func InitOptionMap() {
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
 	common.OptionMap["WorkerValidKey"] = system_setting.WorkerValidKey
 	common.OptionMap["WorkerAllowHttpImageRequestEnabled"] = strconv.FormatBool(system_setting.WorkerAllowHttpImageRequestEnabled)
-	common.OptionMap["PayAddress"] = ""
 	common.OptionMap["CustomCallbackAddress"] = ""
-	common.OptionMap["EpayId"] = ""
-	common.OptionMap["EpayKey"] = ""
 	common.OptionMap["Price"] = strconv.FormatFloat(operation_setting.Price, 'f', -1, 64)
 	common.OptionMap["USDExchangeRate"] = strconv.FormatFloat(operation_setting.USDExchangeRate, 'f', -1, 64)
 	common.OptionMap["MinTopUp"] = strconv.Itoa(operation_setting.MinTopUp)
-	common.OptionMap["StripeMinTopUp"] = strconv.Itoa(setting.StripeMinTopUp)
-	common.OptionMap["StripeApiSecret"] = setting.StripeApiSecret
-	common.OptionMap["StripeWebhookSecret"] = setting.StripeWebhookSecret
-	common.OptionMap["StripePriceId"] = setting.StripePriceId
-	common.OptionMap["StripeUnitPrice"] = strconv.FormatFloat(setting.StripeUnitPrice, 'f', -1, 64)
-	common.OptionMap["StripePromotionCodesEnabled"] = strconv.FormatBool(setting.StripePromotionCodesEnabled)
-	common.OptionMap["CreemApiKey"] = setting.CreemApiKey
-	common.OptionMap["CreemProducts"] = setting.CreemProducts
-	common.OptionMap["CreemTestMode"] = strconv.FormatBool(setting.CreemTestMode)
-	common.OptionMap["CreemWebhookSecret"] = setting.CreemWebhookSecret
-	common.OptionMap["WaffoEnabled"] = strconv.FormatBool(setting.WaffoEnabled)
-	common.OptionMap["WaffoApiKey"] = setting.WaffoApiKey
-	common.OptionMap["WaffoPrivateKey"] = setting.WaffoPrivateKey
-	common.OptionMap["WaffoPublicCert"] = setting.WaffoPublicCert
-	common.OptionMap["WaffoSandboxPublicCert"] = setting.WaffoSandboxPublicCert
-	common.OptionMap["WaffoSandboxApiKey"] = setting.WaffoSandboxApiKey
-	common.OptionMap["WaffoSandboxPrivateKey"] = setting.WaffoSandboxPrivateKey
-	common.OptionMap["WaffoSandbox"] = strconv.FormatBool(setting.WaffoSandbox)
-	common.OptionMap["WaffoMerchantId"] = setting.WaffoMerchantId
-	common.OptionMap["WaffoNotifyUrl"] = setting.WaffoNotifyUrl
-	common.OptionMap["WaffoReturnUrl"] = setting.WaffoReturnUrl
-	common.OptionMap["WaffoSubscriptionReturnUrl"] = setting.WaffoSubscriptionReturnUrl
-	common.OptionMap["WaffoCurrency"] = setting.WaffoCurrency
-	common.OptionMap["WaffoUnitPrice"] = strconv.FormatFloat(setting.WaffoUnitPrice, 'f', -1, 64)
-	common.OptionMap["WaffoMinTopUp"] = strconv.Itoa(setting.WaffoMinTopUp)
-	common.OptionMap["WaffoPayMethods"] = setting.WaffoPayMethods2JsonString()
-	common.OptionMap["WaffoPancakeMerchantID"] = setting.WaffoPancakeMerchantID
-	common.OptionMap["WaffoPancakePrivateKey"] = setting.WaffoPancakePrivateKey
-	common.OptionMap["WaffoPancakeReturnURL"] = setting.WaffoPancakeReturnURL
-	common.OptionMap["WaffoPancakeUnitPrice"] = strconv.FormatFloat(setting.WaffoPancakeUnitPrice, 'f', -1, 64)
-	common.OptionMap["WaffoPancakeMinTopUp"] = strconv.Itoa(setting.WaffoPancakeMinTopUp)
-	common.OptionMap["WaffoPancakeStoreID"] = setting.WaffoPancakeStoreID
-	common.OptionMap["WaffoPancakeProductID"] = setting.WaffoPancakeProductID
+	common.OptionMap["SePayEnabled"] = strconv.FormatBool(setting.SePayEnabled)
+	common.OptionMap["SePayBankAccountNumber"] = setting.SePayBankAccountNumber
+	common.OptionMap["SePayBankCode"] = setting.SePayBankCode
+	common.OptionMap["SePayAccountHolder"] = setting.SePayAccountHolder
+	common.OptionMap["SePayWebhookApiKey"] = setting.SePayWebhookApiKey
+	common.OptionMap["SePayMinTopUp"] = strconv.Itoa(setting.SePayMinTopUp)
+	common.OptionMap["SePayOrderExpiryMinutes"] = strconv.Itoa(setting.SePayOrderExpiryMinutes)
 	common.OptionMap["TopupGroupRatio"] = common.TopupGroupRatio2JSONString()
 	common.OptionMap["Chats"] = setting.Chats2JsonString()
 	common.OptionMap["AutoGroups"] = setting.AutoGroups2JsonString()
 	common.OptionMap["DefaultUseAutoGroup"] = strconv.FormatBool(setting.DefaultUseAutoGroup)
 	common.OptionMap["MaxTokenAutoGroups"] = strconv.Itoa(setting.GetMaxTokenAutoGroups())
-	common.OptionMap["PayMethods"] = operation_setting.PayMethods2JsonString()
 	common.OptionMap["GitHubClientId"] = ""
 	common.OptionMap["GitHubClientSecret"] = ""
 	common.OptionMap["TelegramBotToken"] = ""
@@ -225,12 +197,27 @@ func validateOptionValue(key string, value string) error {
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
 	}
+	if key == "SePayOrderExpiryMinutes" {
+		minutes, err := strconv.Atoi(value)
+		if err != nil {
+			return errors.New("SePay 订单过期时间必须是整数分钟")
+		}
+		if !setting.ValidateSePayOrderExpiryMinutes(minutes) {
+			return fmt.Errorf("SePay 订单过期时间必须在 %d 到 %d 分钟之间", setting.SePayOrderExpiryMinutesMin, setting.SePayOrderExpiryMinutesMax)
+		}
+	}
 	return nil
 }
 
 func UpdateOption(key string, value string) error {
 	if err := validateOptionValue(key, value); err != nil {
 		return err
+	}
+	// Saving an empty SePay webhook API key must leave the stored key
+	// unchanged rather than clearing it, so the webhook keeps working when an
+	// administrator edits another SePay field without retyping the key.
+	if key == "SePayWebhookApiKey" && value == "" {
+		return nil
 	}
 	// Save to database first
 	option := Option{
@@ -263,6 +250,11 @@ func UpdateOptionsBulk(values map[string]string) error {
 	}
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		for k, v := range values {
+			// Match UpdateOption: an empty SePay webhook API key must leave the
+			// stored key unchanged rather than clearing it.
+			if k == "SePayWebhookApiKey" && v == "" {
+				continue
+			}
 			option := Option{Key: k}
 			if err := tx.FirstOrCreate(&option, Option{Key: k}).Error; err != nil {
 				return err
@@ -278,6 +270,9 @@ func UpdateOptionsBulk(values map[string]string) error {
 		return err
 	}
 	for k, v := range values {
+		if k == "SePayWebhookApiKey" && v == "" {
+			continue
+		}
 		if err := updateOptionMap(k, v); err != nil {
 			return err
 		}
@@ -435,8 +430,6 @@ func updateOptionMap(key string, value string) (err error) {
 		system_setting.WorkerUrl = value
 	case "WorkerValidKey":
 		system_setting.WorkerValidKey = value
-	case "PayAddress":
-		operation_setting.PayAddress = value
 	case "Chats":
 		err = setting.UpdateChatsByJsonString(value)
 	case "AutoGroups":
@@ -445,80 +438,26 @@ func updateOptionMap(key string, value string) (err error) {
 		err = setting.UpdateMaxTokenAutoGroups(value)
 	case "CustomCallbackAddress":
 		operation_setting.CustomCallbackAddress = value
-	case "EpayId":
-		operation_setting.EpayId = value
-	case "EpayKey":
-		operation_setting.EpayKey = value
 	case "Price":
 		operation_setting.Price, _ = strconv.ParseFloat(value, 64)
 	case "USDExchangeRate":
 		operation_setting.USDExchangeRate, _ = strconv.ParseFloat(value, 64)
 	case "MinTopUp":
 		operation_setting.MinTopUp, _ = strconv.Atoi(value)
-	case "StripeApiSecret":
-		setting.StripeApiSecret = value
-	case "StripeWebhookSecret":
-		setting.StripeWebhookSecret = value
-	case "StripePriceId":
-		setting.StripePriceId = value
-	case "StripeUnitPrice":
-		setting.StripeUnitPrice, _ = strconv.ParseFloat(value, 64)
-	case "StripeMinTopUp":
-		setting.StripeMinTopUp, _ = strconv.Atoi(value)
-	case "StripePromotionCodesEnabled":
-		setting.StripePromotionCodesEnabled = value == "true"
-	case "CreemApiKey":
-		setting.CreemApiKey = value
-	case "CreemProducts":
-		setting.CreemProducts = value
-	case "CreemTestMode":
-		setting.CreemTestMode = value == "true"
-	case "CreemWebhookSecret":
-		setting.CreemWebhookSecret = value
-	case "WaffoEnabled":
-		setting.WaffoEnabled = value == "true"
-	case "WaffoApiKey":
-		setting.WaffoApiKey = value
-	case "WaffoPrivateKey":
-		setting.WaffoPrivateKey = value
-	case "WaffoPublicCert":
-		setting.WaffoPublicCert = value
-	case "WaffoSandboxPublicCert":
-		setting.WaffoSandboxPublicCert = value
-	case "WaffoSandboxApiKey":
-		setting.WaffoSandboxApiKey = value
-	case "WaffoSandboxPrivateKey":
-		setting.WaffoSandboxPrivateKey = value
-	case "WaffoSandbox":
-		setting.WaffoSandbox = value == "true"
-	case "WaffoMerchantId":
-		setting.WaffoMerchantId = value
-	case "WaffoNotifyUrl":
-		setting.WaffoNotifyUrl = value
-	case "WaffoReturnUrl":
-		setting.WaffoReturnUrl = value
-	case "WaffoSubscriptionReturnUrl":
-		setting.WaffoSubscriptionReturnUrl = value
-	case "WaffoCurrency":
-		setting.WaffoCurrency = value
-	case "WaffoUnitPrice":
-		setting.WaffoUnitPrice, _ = strconv.ParseFloat(value, 64)
-	case "WaffoMinTopUp":
-		setting.WaffoMinTopUp, _ = strconv.Atoi(value)
-	case "WaffoPancakeMerchantID":
-		setting.WaffoPancakeMerchantID = value
-	case "WaffoPancakePrivateKey":
-		setting.WaffoPancakePrivateKey = value
-	case "WaffoPancakeReturnURL":
-		setting.WaffoPancakeReturnURL = value
-	case "WaffoPancakeStoreID":
-		setting.WaffoPancakeStoreID = value
-	case "WaffoPancakeProductID":
-		setting.WaffoPancakeProductID = value
-	case "WaffoPancakeUnitPrice":
-		setting.WaffoPancakeUnitPrice, _ = strconv.ParseFloat(value, 64)
-	case "WaffoPancakeMinTopUp":
-		setting.WaffoPancakeMinTopUp, _ = strconv.Atoi(value)
+	case "SePayEnabled":
+		setting.SePayEnabled = value == "true"
+	case "SePayBankAccountNumber":
+		setting.SePayBankAccountNumber = value
+	case "SePayBankCode":
+		setting.SePayBankCode = value
+	case "SePayAccountHolder":
+		setting.SePayAccountHolder = value
+	case "SePayWebhookApiKey":
+		setting.SePayWebhookApiKey = value
+	case "SePayMinTopUp":
+		setting.SePayMinTopUp, _ = strconv.Atoi(value)
+	case "SePayOrderExpiryMinutes":
+		setting.SePayOrderExpiryMinutes, _ = strconv.Atoi(value)
 	case "TopupGroupRatio":
 		err = common.UpdateTopupGroupRatioByJSONString(value)
 	case "GitHubClientId":
@@ -617,12 +556,6 @@ func updateOptionMap(key string, value string) (err error) {
 		err = operation_setting.AutomaticRetryStatusCodesFromString(value)
 	case "StreamCacheQueueLength":
 		setting.StreamCacheQueueLength, _ = strconv.Atoi(value)
-	case "PayMethods":
-		err = operation_setting.UpdatePayMethodsByJsonString(value)
-	case "WaffoPayMethods":
-		// WaffoPayMethods is read directly from OptionMap via setting.GetWaffoPayMethods().
-		// The value is already stored in OptionMap at the top of this function (line: common.OptionMap[key] = value).
-		// No additional in-memory variable to update.
 	}
 	return err
 }

@@ -16,17 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import i18next from 'i18next'
-import { CreditCard, Landmark } from 'lucide-react'
+import { Landmark } from 'lucide-react'
 import { type ReactNode } from 'react'
-import { SiAlipay, SiWechat, SiStripe } from 'react-icons/si'
 
 import { ReactIconByName } from '@/components/react-icon-by-name'
 
-import { PAYMENT_TYPES, PAYMENT_ICON_COLORS } from '../constants'
-
 // ============================================================================
-// UI Helper Functions
+// UI Helper Functions (SePay — the single provider)
 // ============================================================================
 
 /**
@@ -56,14 +52,15 @@ function normalizeHttpIconUrl(raw: string | undefined | null): string | null {
 }
 
 /**
- * Get payment method icon component
+ * Get the payment icon component for the single provider (SePay, a domestic
+ * bank transfer).
  *
- * When icon is provided, render a safe http(s) image URL or resolve it as a
- * react-icons component name. Invalid configured icons intentionally render
- * nothing instead of falling back to the payment type.
+ * When an icon is explicitly configured, render a safe http(s) image URL or
+ * resolve it as a react-icons component name. Invalid configured icons
+ * intentionally render nothing instead of falling back. Without a configured
+ * icon, render the default bank/landmark icon.
  */
 export function getPaymentIcon(
-  paymentType: string | undefined,
   className: string = 'h-4 w-4',
   icon?: string,
   altName?: string
@@ -74,7 +71,7 @@ export function getPaymentIcon(
     return (
       <img
         src={safeIconUrl}
-        alt={altName || paymentType || 'payment'}
+        alt={altName || 'SePay'}
         className={className}
         style={{ objectFit: 'contain' }}
         loading='lazy'
@@ -88,73 +85,10 @@ export function getPaymentIcon(
       <ReactIconByName
         name={iconValue}
         className={className}
-        title={altName || paymentType || iconValue}
+        title={altName || 'SePay'}
       />
     )
   }
 
-  if (!paymentType) {
-    return <CreditCard className={className} />
-  }
-
-  switch (paymentType) {
-    case PAYMENT_TYPES.ALIPAY:
-      return (
-        <SiAlipay
-          className={className}
-          style={{ color: PAYMENT_ICON_COLORS[PAYMENT_TYPES.ALIPAY] }}
-        />
-      )
-    case PAYMENT_TYPES.WECHAT:
-      return (
-        <SiWechat
-          className={className}
-          style={{ color: PAYMENT_ICON_COLORS[PAYMENT_TYPES.WECHAT] }}
-        />
-      )
-    case PAYMENT_TYPES.STRIPE:
-      return (
-        <SiStripe
-          className={className}
-          style={{ color: PAYMENT_ICON_COLORS[PAYMENT_TYPES.STRIPE] }}
-        />
-      )
-    case PAYMENT_TYPES.CREEM:
-      return (
-        <Landmark
-          className={className}
-          style={{ color: PAYMENT_ICON_COLORS[PAYMENT_TYPES.CREEM] }}
-        />
-      )
-    case PAYMENT_TYPES.WAFFO:
-      return (
-        <CreditCard
-          className={className}
-          style={{ color: PAYMENT_ICON_COLORS[PAYMENT_TYPES.WAFFO] }}
-        />
-      )
-    case PAYMENT_TYPES.WAFFO_PANCAKE:
-      // The W glyph fills only ~40% of its viewBox vertically (wide and
-      // short letterform); scale(2) brings its rendered height in line
-      // with Stripe's S and Creem's Landmark.
-      return (
-        <span
-          className={`inline-flex items-center justify-center leading-none ${className}`}
-          style={{ transform: 'scale(2)' }}
-        >
-          <img
-            src='/waffo-logo-light.svg'
-            alt={i18next.t('Waffo')}
-            className='block h-full w-full object-contain dark:hidden'
-          />
-          <img
-            src='/waffo-logo-dark.svg'
-            alt={i18next.t('Waffo')}
-            className='hidden h-full w-full object-contain dark:block'
-          />
-        </span>
-      )
-    default:
-      return <CreditCard className={className} />
-  }
+  return <Landmark className={className} />
 }

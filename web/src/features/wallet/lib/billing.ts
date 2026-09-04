@@ -56,17 +56,24 @@ export function getStatusConfig(status: TopupStatus): StatusConfig {
 }
 
 /**
- * Payment method display names
+ * Payment method display names — parties here are rendered in user and admin
+ * billing history. `sepay` is the only method new orders carry; the remaining
+ * keys are legacy values that must still render a readable label for historical
+ * rows (spec "Historical records remain readable").
  */
 export const PAYMENT_METHOD_NAMES: Record<string, string> = {
+  sepay: 'SePay',
   stripe: 'Stripe',
   alipay: 'Alipay',
   wxpay: 'WeChat Pay',
   waffo: 'Waffo',
+  waffo_pancake: 'Waffo Pancake',
+  creem: 'Creem',
 }
 
 /**
- * Get payment method display name
+ * Get payment method display name. Run the result through `t` at the call
+ * site when it is inside a component so the label stays translatable.
  */
 export function getPaymentMethodName(
   method: string,
