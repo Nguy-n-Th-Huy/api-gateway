@@ -3,6 +3,8 @@ package controller
 import (
 	"net/http"
 
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
@@ -28,7 +30,11 @@ func GetUserGroups(c *gin.Context) {
 	userGroup := ""
 	userId := c.GetInt("id")
 	userGroup, _ = model.GetUserGroup(userId, false)
-	userUsableGroups := service.GetUserUsableGroups(userGroup)
+	// The /user/groups route is registered with no auth middleware, so an
+	// anonymous request has no role on the context and resolves as RoleGuestUser
+	// (0); admin-only groups are never offered to it.
+	role := common.GetContextKeyInt(c, constant.ContextKeyUserRole)
+	userUsableGroups := service.GetUserUsableGroups(userGroup, role)
 	for groupName, _ := range ratio_setting.GetGroupRatioCopy() {
 		// UserUsableGroups contains the groups that the user can use
 		if desc, ok := userUsableGroups[groupName]; ok {

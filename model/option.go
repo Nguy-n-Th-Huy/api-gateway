@@ -103,6 +103,7 @@ func InitOptionMap() {
 	common.OptionMap["TopupGroupRatio"] = common.TopupGroupRatio2JSONString()
 	common.OptionMap["Chats"] = setting.Chats2JsonString()
 	common.OptionMap["AutoGroups"] = setting.AutoGroups2JsonString()
+	common.OptionMap["AdminOnlyGroups"] = setting.AdminOnlyGroups2JsonString()
 	common.OptionMap["DefaultUseAutoGroup"] = strconv.FormatBool(setting.DefaultUseAutoGroup)
 	common.OptionMap["MaxTokenAutoGroups"] = strconv.Itoa(setting.GetMaxTokenAutoGroups())
 	common.OptionMap["GitHubClientId"] = ""
@@ -439,6 +440,8 @@ func updateOptionMap(key string, value string) (err error) {
 		err = setting.UpdateChatsByJsonString(value)
 	case "AutoGroups":
 		err = setting.UpdateAutoGroupsByJsonString(value)
+	case "AdminOnlyGroups":
+		err = setting.UpdateAdminOnlyGroupsByJsonString(value)
 	case "MaxTokenAutoGroups":
 		err = setting.UpdateMaxTokenAutoGroups(value)
 	case "CustomCallbackAddress":

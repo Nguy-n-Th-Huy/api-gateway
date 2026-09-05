@@ -106,6 +106,17 @@ func Distribute() func(c *gin.Context) {
 				}
 				var selectGroup string
 				usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
+				role := common.GetContextKeyInt(c, constant.ContextKeyUserRole)
+				// The playground is guarded by UserAuth, not TokenAuth, and
+				// setDashboardAuthContext puts the requester's own user group on the
+				// context as the effective group without the admin-only gate that
+				// TokenAuth applies to a token's group. Enforce it at the point where
+				// the group starts selecting channels; token-authenticated relays
+				// already passed the same predicate, so this only rejects what leaked.
+				if service.IsAdminOnlyGroupForRole(usingGroup, role) {
+					abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
+					return
+				}
 				// check path is /pg/chat/completions
 				if strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") {
 					playgroundRequest := &dto.PlayGroundRequest{}
@@ -115,7 +126,7 @@ func Distribute() func(c *gin.Context) {
 						return
 					}
 					if playgroundRequest.Group != "" {
-						if !service.GroupInUserUsableGroups(usingGroup, playgroundRequest.Group) && playgroundRequest.Group != usingGroup {
+						if !service.GroupInUserUsableGroups(usingGroup, playgroundRequest.Group, role) && playgroundRequest.Group != usingGroup {
 							abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
 							return
 						}

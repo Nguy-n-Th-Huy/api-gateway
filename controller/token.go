@@ -109,6 +109,7 @@ func setTokenAutoGroups(c *gin.Context, token *model.Token, groups []string) boo
 		common.ApiError(c, err)
 		return false
 	}
+	role := common.GetContextKeyInt(c, constant.ContextKeyUserRole)
 	seen := make(map[string]struct{}, len(groups))
 	for _, group := range groups {
 		if _, ok := seen[group]; ok {
@@ -116,7 +117,7 @@ func setTokenAutoGroups(c *gin.Context, token *model.Token, groups []string) boo
 			return false
 		}
 		seen[group] = struct{}{}
-		if !service.IsUserSelectableGroup(userGroup, group) {
+		if !service.IsUserSelectableGroup(userGroup, group, role) {
 			common.ApiErrorI18n(c, i18n.MsgTokenAutoGroupsInvalid, map[string]any{"Group": group})
 			return false
 		}
@@ -181,8 +182,9 @@ func GetTokenAutoGroups(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	role := common.GetContextKeyInt(c, constant.ContextKeyUserRole)
 	common.ApiSuccess(c, gin.H{
-		"groups":    service.GetUserAutoGroup(userGroup),
+		"groups":    service.GetUserAutoGroup(userGroup, role),
 		"max_count": setting.GetMaxTokenAutoGroups(),
 	})
 }

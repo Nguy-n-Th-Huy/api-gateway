@@ -462,7 +462,7 @@ func TokenAuth() func(c *gin.Context) {
 		tokenGroup := token.Group
 		if tokenGroup != "" {
 			// check common.UserUsableGroups[userGroup]
-			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
+			if _, ok := service.GetUserUsableGroups(userGroup, userCache.Role)[tokenGroup]; !ok {
 				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
 				return
 			}
@@ -474,6 +474,16 @@ func TokenAuth() func(c *gin.Context) {
 				}
 			}
 			userGroup = tokenGroup
+		}
+		// The effective group can also come from the key owner's own user group:
+		// Token.Group defaults to '' (model/token.go), and an ungrouped key inherits
+		// the owner's group, which never passes the check above. Gating the resolved
+		// value here is what makes "my own group is admin-only" a refusal instead of
+		// an implicit exemption, and everything downstream that reads
+		// ContextKeyUsingGroup inherits it.
+		if service.IsAdminOnlyGroupForRole(userGroup, userCache.Role) {
+			abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", userGroup))
+			return
 		}
 		common.SetContextKey(c, constant.ContextKeyUsingGroup, userGroup)
 

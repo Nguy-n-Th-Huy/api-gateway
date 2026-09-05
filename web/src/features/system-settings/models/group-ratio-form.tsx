@@ -70,6 +70,7 @@ type GroupFormValues = {
   UserUsableGroups: string
   GroupGroupRatio: string
   AutoGroups: string
+  AdminOnlyGroups: string
   MaxTokenAutoGroups: number
   DefaultUseAutoGroup: boolean
   GroupSpecialUsableGroup: string
@@ -172,6 +173,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               userUsableGroups={form.watch('UserUsableGroups')}
               groupGroupRatio={form.watch('GroupGroupRatio')}
               autoGroups={form.watch('AutoGroups')}
+              adminOnlyGroups={form.watch('AdminOnlyGroups')}
               maxTokenAutoGroupsField={
                 <FormField
                   control={form.control}
@@ -363,6 +365,32 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                   <FormDescription>
                     {t(
                       'JSON array of group identifiers. When enabled below, new tokens rotate through this list.'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='AdminOnlyGroups'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Admin-only groups')}</FormLabel>
+                  <FormControl>
+                    <JsonCodeEditor
+                      value={field.value}
+                      onChange={field.onChange}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      textareaRef={field.ref}
+                      heightClassName='h-40 min-h-40 max-h-40'
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'JSON array of group names usable by administrators only. Invisible to and unusable by everyone else, including users whose own group is listed.'
                     )}
                   </FormDescription>
                   <FormMessage />

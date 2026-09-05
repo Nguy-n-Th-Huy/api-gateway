@@ -208,6 +208,17 @@ func getModelListGroups(c *gin.Context) (modelListGroups, error) {
 	if tokenGroup != "" {
 		group = tokenGroup
 	}
+	// This path never reads ContextKeyUsingGroup — the value TokenAuth gates — so
+	// the admin-only rule is applied to the resolved group here as well. An
+	// ordinary user asking for an admin-only group's models gets an empty list,
+	// not an error, which is how every other group they may not use behaves.
+	if service.IsAdminOnlyGroupForRole(group, common.GetContextKeyInt(c, constant.ContextKeyUserRole)) {
+		return modelListGroups{
+			userGroup:   userGroup,
+			tokenGroup:  tokenGroup,
+			ownerGroups: []string{},
+		}, nil
+	}
 	return modelListGroups{
 		userGroup:   userGroup,
 		tokenGroup:  tokenGroup,

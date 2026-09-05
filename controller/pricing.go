@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -9,7 +10,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func filterPricingByUsableGroups(pricing []model.Pricing, usableGroup map[string]string) []model.Pricing {
+// filterPricingByUsableGroups keeps the model rows a requester at the given role
+// may see, and prunes from enable_groups only the group names the admin-only rule
+// withholds from that role. A model enabled for both an admin-only group and a
+// usable group stays visible; only the withheld name disappears. Other names the
+// requester cannot use are deliberately left alone — enable_groups has always
+// been able to name them, and this change does not redefine that.
+//
+// The pruned row always carries a freshly allocated slice: pricing comes from
+// model.GetPricing(), whose rows share each EnableGroup with the pricing cache
+// (modelEnableGroups holds the same slice), so an in-place prune would leak this
+// requester's view into every later response, including an administrator's.
+func filterPricingByUsableGroups(pricing []model.Pricing, usableGroup map[string]string, role int) []model.Pricing {
 	if len(pricing) == 0 {
 		return pricing
 	}
@@ -19,16 +31,28 @@ func filterPricingByUsableGroups(pricing []model.Pricing, usableGroup map[string
 
 	filtered := make([]model.Pricing, 0, len(pricing))
 	for _, item := range pricing {
-		if common.StringsContains(item.EnableGroup, "all") {
-			filtered = append(filtered, item)
-			continue
-		}
-		for _, group := range item.EnableGroup {
-			if _, ok := usableGroup[group]; ok {
-				filtered = append(filtered, item)
-				break
+		visible := common.StringsContains(item.EnableGroup, "all")
+		if !visible {
+			for _, group := range item.EnableGroup {
+				if _, ok := usableGroup[group]; ok {
+					visible = true
+					break
+				}
 			}
 		}
+		if !visible {
+			continue
+		}
+		// "all" is a wildcard, not a group name, and must survive pruning.
+		enableGroups := make([]string, 0, len(item.EnableGroup))
+		for _, group := range item.EnableGroup {
+			if group != "all" && service.IsAdminOnlyGroupForRole(group, role) {
+				continue
+			}
+			enableGroups = append(enableGroups, group)
+		}
+		item.EnableGroup = enableGroups
+		filtered = append(filtered, item)
 	}
 	return filtered
 }
@@ -42,6 +66,11 @@ func GetPricing(c *gin.Context) {
 		groupRatio[s] = f
 	}
 	var group string
+	// HeaderNavModuleAuth("pricing") falls through to TryUserAuth for a public
+	// module, which only writes the auth context when the credential is valid.
+	// An anonymous request therefore has no role on the context and resolves as
+	// RoleGuestUser (0), pruning every admin-only group from all four surfaces.
+	role := common.GetContextKeyInt(c, constant.ContextKeyUserRole)
 	if exists {
 		user, err := model.GetUserCache(userId.(int))
 		if err == nil {
@@ -55,8 +84,8 @@ func GetPricing(c *gin.Context) {
 		}
 	}
 
-	usableGroup = service.GetUserUsableGroups(group)
-	pricing = filterPricingByUsableGroups(pricing, usableGroup)
+	usableGroup = service.GetUserUsableGroups(group, role)
+	pricing = filterPricingByUsableGroups(pricing, usableGroup, role)
 	// check groupRatio contains usableGroup
 	for group := range ratio_setting.GetGroupRatioCopy() {
 		if _, ok := usableGroup[group]; !ok {
@@ -71,7 +100,7 @@ func GetPricing(c *gin.Context) {
 		"group_ratio":        groupRatio,
 		"usable_group":       usableGroup,
 		"supported_endpoint": model.GetSupportedEndpointMap(),
-		"auto_groups":        service.GetUserAutoGroup(group),
+		"auto_groups":        service.GetUserAutoGroup(group, role),
 		"pricing_version":    "a42d372ccf0b5dd13ecf71203521f9d2",
 	})
 }
