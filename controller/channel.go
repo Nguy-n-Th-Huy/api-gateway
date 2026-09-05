@@ -98,6 +98,19 @@ func GetChannelOps(c *gin.Context) {
 	})
 }
 
+// GetChannelHealth returns per-channel success rate and average latency
+// derived from request logs over a trailing 24-hour window, served from a
+// short-lived cache (service.GetChannelHealthSnapshot). Read-only; does not
+// affect routing, retry, auto-disable, billing, or quota.
+func GetChannelHealth(c *gin.Context) {
+	stats, err := service.GetChannelHealthSnapshot()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, stats)
+}
+
 func GetAllChannels(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	channelData := make([]*model.Channel, 0)

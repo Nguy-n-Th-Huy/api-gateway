@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
+  Info,
   ListOrdered,
   Shuffle,
   SlidersHorizontal,
@@ -57,10 +58,12 @@ import { truncateText } from '@/lib/utils'
 
 import { getCodexUsage, updateChannelBalance } from '../api'
 import { CHANNEL_STATUS_CONFIG, MODEL_FETCHABLE_TYPES } from '../constants'
+import { useChannelHealth } from '../hooks/use-channel-health'
 import {
   formatRelativeTime,
   formatResponseTime,
   getBalanceVariant,
+  getChannelHealthCellView,
   getChannelTypeIcon,
   getChannelTypeLabel,
   getResponseTimeConfig,
@@ -77,6 +80,7 @@ import {
 } from '../lib'
 import { parseUpstreamUpdateMeta } from '../lib/upstream-update-utils'
 import type { Channel } from '../types'
+import { AvgLatencyCell, SuccessRateCell } from './channel-health-cells'
 import { ChannelRowActionsLayoutContext } from './channel-row-actions-context'
 import { useChannels } from './channels-provider'
 import { DataTableRowActions } from './data-table-row-actions'
@@ -593,10 +597,14 @@ export function useChannelsColumns(
   const { sensitiveVisible } = useChannels()
   const enableSelection = options.enableSelection ?? true
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  // Fetched once here (not per cell) so every row's success-rate and
+  // avg-latency cells share a single subscription to the cached lookup.
+  const { lookup: channelHealthLookup } = useChannelHealth()
   // The column definitions only depend on the translation function, the active
-  // locale, and sensitive-data visibility. Memoizing keeps the array (and every
-  // cell renderer reference) stable across unrelated re-renders, so react-table
-  // does not invalidate the whole row model on each parent render.
+  // locale, sensitive-data visibility, and the channel health lookup.
+  // Memoizing keeps the array (and every cell renderer reference) stable
+  // across unrelated re-renders, so react-table does not invalidate the
+  // whole row model on each parent render.
   return useMemo<ColumnDef<Channel>[]>(
     () => [
       // Checkbox column
@@ -1159,6 +1167,58 @@ export function useChannelsColumns(
         size: 110,
       },
 
+      // Success Rate column (derived from request logs, trailing 24h window)
+      {
+        id: 'success_rate',
+        header: t('Success rate'),
+        meta: { mobileHidden: true },
+        cell: ({ row }) => (
+          <SuccessRateCell
+            view={getChannelHealthCellView(channelHealthLookup, row.original.id)}
+          />
+        ),
+        size: 110,
+        enableSorting: false,
+      },
+
+      // Avg Latency column (derived from request logs, trailing 24h window)
+      {
+        id: 'avg_latency_ms',
+        header: () => (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span className='inline-flex cursor-help items-center gap-1'>
+                    {t('Average latency')}
+                    <Info
+                      size={12}
+                      className='text-muted-foreground'
+                      aria-hidden='true'
+                    />
+                  </span>
+                }
+              />
+              <TooltipContent side='top'>
+                <p className='max-w-xs text-sm'>
+                  {t(
+                    'Approximate: request durations are recorded with one-second granularity, so this value is a lower bound.'
+                  )}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ),
+        meta: { mobileHidden: true },
+        cell: ({ row }) => (
+          <AvgLatencyCell
+            view={getChannelHealthCellView(channelHealthLookup, row.original.id)}
+          />
+        ),
+        size: 130,
+        enableSorting: false,
+      },
+
       // Test Time column
       {
         accessorKey: 'test_time',
@@ -1225,6 +1285,6 @@ export function useChannelsColumns(
         meta: { pinned: 'right' as const },
       },
     ],
-    [enableSelection, t, locale, sensitiveVisible]
+    [enableSelection, t, locale, sensitiveVisible, channelHealthLookup]
   )
 }

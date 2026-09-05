@@ -27,7 +27,12 @@ import {
   RESPONSE_TIME_THRESHOLDS,
   TYPE_TO_KEY_PROMPT,
 } from '../constants'
-import type { Channel, ChannelSettings, ChannelOtherSettings } from '../types'
+import type {
+  Channel,
+  ChannelSettings,
+  ChannelOtherSettings,
+  ChannelHealthStat,
+} from '../types'
 
 // ============================================================================
 // Channel Type Utilities
@@ -398,6 +403,114 @@ export function getResponseTimeConfig(timeMs: number) {
     return RESPONSE_TIME_CONFIG.POOR
   }
   return RESPONSE_TIME_CONFIG.POOR
+}
+
+// ============================================================================
+// Channel Health Utilities
+// ============================================================================
+
+/**
+ * Format `avg_latency_ms` (derived from request-log durations, which have
+ * one-second granularity) for display in the channel health table.
+ *
+ * This is deliberately NOT `formatResponseTime`: that function treats `0` as
+ * "the manual Test button was never run" for the `response_time` column.
+ * Here, `0` is a genuine, expected measurement -- every request in the
+ * trailing window completed in under one second -- so it must read as the
+ * best possible outcome, not as missing data. A channel absent from the
+ * health lookup entirely (no traffic in the window) is a different state and
+ * must be handled by the caller via `ChannelHealthCellView.hasData`, never by
+ * passing a fabricated `0` into this formatter.
+ */
+export function formatAvgLatency(timeMs: number, t?: TFunction): string {
+  if (timeMs === 0) {
+    return t ? t('< 1s') : '< 1s'
+  }
+  return formatResponseTime(timeMs, t)
+}
+
+/**
+ * Get the badge variant/config for `avg_latency_ms`. Mirrors
+ * `getResponseTimeConfig` for every positive value, but treats `0` as the
+ * healthy "sub-second" reading (see `formatAvgLatency`) rather than
+ * `getResponseTimeConfig`'s "not tested" (grey/unknown) meaning of `0`.
+ */
+export function getAvgLatencyConfig(timeMs: number) {
+  if (timeMs === 0) {
+    return RESPONSE_TIME_CONFIG.GOOD
+  }
+  return getResponseTimeConfig(timeMs)
+}
+
+const SUCCESS_RATE_WARNING_THRESHOLD = 0.9
+const SUCCESS_RATE_DANGER_THRESHOLD = 0.7
+
+/**
+ * Get a StatusBadge variant for a channel health success rate (a ratio in
+ * [0, 1]). Only meaningful for a channel present in the health lookup —
+ * callers must render the no-data indicator for an absent channel instead
+ * of calling this with a fabricated 0.
+ */
+export function getSuccessRateVariant(
+  rate: number
+): 'success' | 'warning' | 'danger' {
+  if (rate >= SUCCESS_RATE_WARNING_THRESHOLD) {
+    return 'success'
+  }
+  if (rate >= SUCCESS_RATE_DANGER_THRESHOLD) {
+    return 'warning'
+  }
+  return 'danger'
+}
+
+/**
+ * Format a channel health success rate (a ratio in [0, 1]) as a rounded
+ * percentage string, e.g. 0.8 -> "80%".
+ */
+export function formatSuccessRate(rate: number): string {
+  return `${Math.round(rate * 100)}%`
+}
+
+/** Keyed by channel id. A missing key means the channel had no traffic in
+ * the trailing window (or the health request failed) — callers must render
+ * the no-data indicator for it, never a zero value. */
+export type ChannelHealthLookup = Map<number, ChannelHealthStat>
+
+export interface ChannelHealthCellView {
+  /** false when the channel is absent from the lookup — no traffic in the
+   * window, or the health request failed/is unavailable. */
+  hasData: boolean
+  successRateLabel: string
+  successRateVariant: 'success' | 'warning' | 'danger'
+  avgLatencyMs: number
+}
+
+/**
+ * Resolve the display data for a channel's success-rate and avg-latency
+ * cells from the health lookup. A channel absent from the lookup renders
+ * the "no data" state in both columns; a present channel with a genuine
+ * zero success rate (all requests failed) still renders "0%", since that is
+ * real, alarming signal rather than an idle channel.
+ */
+export function getChannelHealthCellView(
+  lookup: ChannelHealthLookup,
+  channelId: number
+): ChannelHealthCellView {
+  const stat = lookup.get(channelId)
+  if (!stat) {
+    return {
+      hasData: false,
+      successRateLabel: '',
+      successRateVariant: 'danger',
+      avgLatencyMs: 0,
+    }
+  }
+  return {
+    hasData: true,
+    successRateLabel: formatSuccessRate(stat.success_rate),
+    successRateVariant: getSuccessRateVariant(stat.success_rate),
+    avgLatencyMs: stat.avg_latency_ms,
+  }
 }
 
 // ============================================================================

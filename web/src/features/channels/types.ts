@@ -181,6 +181,27 @@ export interface ChannelOpsResponse {
   }
 }
 
+// ============================================================================
+// Channel Health Metrics Types
+// ============================================================================
+
+export const channelHealthStatSchema = z.object({
+  channel_id: z.number(),
+  total_requests: z.number(),
+  success_requests: z.number(),
+  failed_requests: z.number(),
+  success_rate: z.number(), // ratio in [0, 1]; percentage formatting is a frontend concern
+  avg_latency_ms: z.number(), // lower bound: logs.use_time has one-second granularity
+})
+
+export type ChannelHealthStat = z.infer<typeof channelHealthStatSchema>
+
+export interface GetChannelHealthResponse {
+  success: boolean
+  message?: string
+  data?: ChannelHealthStat[]
+}
+
 export interface ChannelTestResponse {
   success: boolean
   message?: string

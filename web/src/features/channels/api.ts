@@ -30,6 +30,7 @@ import type {
   CopyChannelParams,
   CopyChannelResponse,
   FetchModelsResponse,
+  GetChannelHealthResponse,
   GetChannelResponse,
   GetChannelsParams,
   GetChannelsResponse,
@@ -120,6 +121,16 @@ export async function getChannel(id: number): Promise<GetChannelResponse> {
  */
 export async function getChannelOps(): Promise<ChannelOpsResponse> {
   const res = await api.get('/api/channel/ops', channelActionConfig())
+  return res.data
+}
+
+/**
+ * Get per-channel success rate and average latency derived from request
+ * logs over a trailing 24-hour window. A channel with no traffic in the
+ * window is simply absent from `data`.
+ */
+export async function getChannelHealth(): Promise<GetChannelHealthResponse> {
+  const res = await api.get('/api/channel/health', channelActionConfig())
   return res.data
 }
 
