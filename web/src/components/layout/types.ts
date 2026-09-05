@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type LinkProps } from '@tanstack/react-router'
-import { type TFunction } from 'i18next'
+import type { LinkProps } from '@tanstack/react-router'
+import type { TFunction } from 'i18next'
 
 /**
  * Base navigation item type
@@ -98,6 +98,40 @@ export type TopNavLink = {
   requiresAuth?: boolean
   external?: boolean
 }
+
+/**
+ * A navigation link rendered inside a group's panel — a {@link TopNavLink}
+ * enriched with the short description shown alongside its icon.
+ */
+export type NavGroupChild = TopNavLink & {
+  description: string
+}
+
+/**
+ * The panel's selling cell — authored copy plus a link, never a count or
+ * other figure the frontend cannot source from real data.
+ */
+export type NavGroupHighlight = {
+  title: string
+  description: string
+  linkLabel: string
+  href: string
+}
+
+/**
+ * A top-level entry in the public header's grouped navigation: either a
+ * plain link (home, console, or a group collapsed to its one remaining
+ * child) or a group that opens a panel listing two or more children.
+ */
+export type GroupedNavEntry =
+  | ({ kind: 'link' } & TopNavLink)
+  | {
+      kind: 'group'
+      id: string
+      label: string
+      highlight?: NavGroupHighlight
+      children: NavGroupChild[]
+    }
 
 /**
  * Back-navigation descriptor for a nested sidebar view

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
@@ -25,6 +25,12 @@ import { LanguageSwitcher } from '@/components/language-switcher'
 import { NotificationPopover } from '@/components/notification-popover'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { ThemeSwitch } from '@/components/theme-switch'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useNotifications } from '@/hooks/use-notifications'
@@ -34,8 +40,10 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { defaultTopNavLinks } from '../config/top-nav.config'
+import { groupTopNavLinks } from '../lib/group-top-nav-links'
 import type { TopNavLink } from '../types'
 import { HeaderLogo } from './header-logo'
+import { NavGroupMenu } from './nav-group-menu'
 
 const AUTH_PROMPT_SECONDS = 5
 
@@ -97,6 +105,10 @@ export function PublicHeader(props: PublicHeaderProps) {
   const isAuthenticated = !!user
   const displaySiteName = customSiteName || systemName
   const links = dynamicLinks.length > 0 ? dynamicLinks : navLinks
+  const groupedEntries = useMemo(
+    () => groupTopNavLinks(links, t),
+    [links, t]
+  )
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -214,45 +226,11 @@ export function PublicHeader(props: PublicHeaderProps) {
 
             {/* Desktop nav */}
             <div className='hidden items-center gap-0.5 sm:flex'>
-              {links.map((link) => {
-                const isActive = pathname === link.href
-                const linkClassName = cn(
-                  'rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden',
-                  isActive
-                    ? 'bg-accent text-accent-foreground font-semibold'
-                    : 'text-muted-foreground hover:bg-accent/55 hover:text-foreground',
-                  link.disabled && 'pointer-events-none opacity-40'
-                )
-                if (link.external) {
-                  return (
-                    <a
-                      key={`${link.title}-${link.href}`}
-                      href={link.href}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      aria-disabled={link.disabled}
-                      aria-current={isActive ? 'page' : undefined}
-                      tabIndex={link.disabled ? -1 : undefined}
-                      onClick={(event) => handleNavLinkClick(event, link)}
-                      className={linkClassName}
-                    >
-                      {t(link.title)}
-                    </a>
-                  )
-                }
-                return (
-                  <Link
-                    key={`${link.title}-${link.href}`}
-                    to={link.href}
-                    disabled={link.disabled}
-                    aria-current={isActive ? 'page' : undefined}
-                    onClick={(event) => handleNavLinkClick(event, link)}
-                    className={linkClassName}
-                  >
-                    {t(link.title)}
-                  </Link>
-                )
-              })}
+              <NavGroupMenu
+                entries={groupedEntries}
+                pathname={pathname}
+                onLinkClick={handleNavLinkClick}
+              />
 
               {(showLanguageSwitcher ||
                 showThemeSwitch ||
@@ -344,54 +322,124 @@ export function PublicHeader(props: PublicHeaderProps) {
         )}
       >
         <div className='flex h-full flex-col justify-between px-8 pt-20 pb-10'>
-          <nav className='flex flex-col gap-1'>
-            {links.map((link, i) => {
-              const isActive = pathname === link.href
-              const linkClassName = cn(
-                'flex items-center gap-3 py-3 text-base font-medium tracking-tight transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
-                mobileOpen
-                  ? 'translate-y-0 opacity-100'
-                  : 'translate-y-4 opacity-0',
-                isActive
-                  ? 'text-accent-foreground font-semibold'
-                  : 'text-muted-foreground',
-                link.disabled && 'pointer-events-none opacity-40'
-              )
-              const transitionStyle = {
-                transitionDelay: mobileOpen ? `${100 + i * 50}ms` : '0ms',
-              }
-              if (link.external) {
+          <nav>
+            <Accordion multiple className='flex flex-col gap-1'>
+              {groupedEntries.map((entry, i) => {
+                const transitionStyle = {
+                  transitionDelay: mobileOpen ? `${100 + i * 50}ms` : '0ms',
+                }
+
+                if (entry.kind === 'link') {
+                  const isActive = pathname === entry.href
+                  const linkClassName = cn(
+                    'flex min-h-11 items-center gap-3 py-3 text-base font-medium tracking-tight transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                    mobileOpen
+                      ? 'translate-y-0 opacity-100'
+                      : 'translate-y-4 opacity-0',
+                    isActive
+                      ? 'text-accent-foreground font-semibold'
+                      : 'text-muted-foreground',
+                    entry.disabled && 'pointer-events-none opacity-40'
+                  )
+                  if (entry.external) {
+                    return (
+                      <a
+                        key={entry.href}
+                        href={entry.href}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        aria-disabled={entry.disabled}
+                        aria-current={isActive ? 'page' : undefined}
+                        tabIndex={entry.disabled ? -1 : undefined}
+                        onClick={(event) => handleNavLinkClick(event, entry, true)}
+                        className={linkClassName}
+                        style={transitionStyle}
+                      >
+                        {entry.title}
+                      </a>
+                    )
+                  }
+                  return (
+                    <Link
+                      key={entry.href}
+                      to={entry.href}
+                      disabled={entry.disabled}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={(event) => handleNavLinkClick(event, entry, true)}
+                      className={linkClassName}
+                      style={transitionStyle}
+                    >
+                      {entry.title}
+                    </Link>
+                  )
+                }
+
                 return (
-                  <a
-                    key={`${link.title}-${link.href}`}
-                    href={link.href}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    aria-disabled={link.disabled}
-                    aria-current={isActive ? 'page' : undefined}
-                    tabIndex={link.disabled ? -1 : undefined}
-                    onClick={(event) => handleNavLinkClick(event, link, true)}
-                    className={linkClassName}
+                  <AccordionItem
+                    key={entry.id}
+                    value={entry.id}
+                    className={cn(
+                      '!border-b-0 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                      mobileOpen
+                        ? 'translate-y-0 opacity-100'
+                        : 'translate-y-4 opacity-0'
+                    )}
                     style={transitionStyle}
                   >
-                    {t(link.title)}
-                  </a>
+                    <AccordionTrigger className='text-muted-foreground min-h-11 py-3 text-base font-medium tracking-tight hover:no-underline'>
+                      {entry.label}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className='flex flex-col gap-1 pl-1'>
+                        {entry.children.map((child) => {
+                          const isActive = pathname === child.href
+                          const childClassName = cn(
+                            'flex min-h-11 items-center gap-3 py-2.5 text-sm font-medium',
+                            isActive
+                              ? 'text-accent-foreground font-semibold'
+                              : 'text-muted-foreground',
+                            child.disabled && 'pointer-events-none opacity-40'
+                          )
+                          if (child.external) {
+                            return (
+                              <a
+                                key={child.href}
+                                href={child.href}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                aria-disabled={child.disabled}
+                                aria-current={isActive ? 'page' : undefined}
+                                tabIndex={child.disabled ? -1 : undefined}
+                                onClick={(event) =>
+                                  handleNavLinkClick(event, child, true)
+                                }
+                                className={childClassName}
+                              >
+                                {child.title}
+                              </a>
+                            )
+                          }
+                          return (
+                            <Link
+                              key={child.href}
+                              to={child.href}
+                              disabled={child.disabled}
+                              aria-current={isActive ? 'page' : undefined}
+                              onClick={(event) =>
+                                handleNavLinkClick(event, child, true)
+                              }
+                              className={childClassName}
+                            >
+                              {child.title}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
                 )
-              }
-              return (
-                <Link
-                  key={`${link.title}-${link.href}`}
-                  to={link.href}
-                  disabled={link.disabled}
-                  aria-current={isActive ? 'page' : undefined}
-                  onClick={(event) => handleNavLinkClick(event, link, true)}
-                  className={linkClassName}
-                  style={transitionStyle}
-                >
-                  {t(link.title)}
-                </Link>
-              )
-            })}
+              })}
+            </Accordion>
           </nav>
 
           <div
