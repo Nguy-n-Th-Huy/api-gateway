@@ -253,6 +253,25 @@ func SetApiRouter(router *gin.Engine) {
 			}
 		}
 
+		// Public, unauthenticated key check route for the /key page.
+		// Deliberately outside tokenRoute (middleware.UserAuth()), since this
+		// must work for a visitor with no account or session.
+		publicTokenRoute := apiRouter.Group("/token")
+		publicTokenRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
+		{
+			publicTokenRoute.POST("/check", anonymousRequestBodyLimit, controller.CheckTokenUsage)
+		}
+
+		// Public, unauthenticated setup-script route for the /key page's
+		// setup section. Path and query parameter names are fixed by
+		// web/src/features/key-check/constants.ts (SETUP_SCRIPT_ENDPOINT,
+		// SETUP_SCRIPT_QUERY_PARAMS).
+		publicSetupRoute := apiRouter.Group("/setup")
+		publicSetupRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
+		{
+			publicSetupRoute.GET("/script", controller.GetTokenSetupScript)
+		}
+
 		redemptionRoute := apiRouter.Group("/redemption")
 		redemptionRoute.Use(middleware.AdminAuth())
 		{

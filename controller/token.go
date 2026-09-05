@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
 type tokenAutoGroupsInput struct {
@@ -223,6 +225,73 @@ func GetTokenStatus(c *gin.Context) {
 	})
 }
 
+// tokenReportBase holds the quota/config fields shared between the
+// authenticated GET /api/usage/token report and the public POST
+// /api/token/check report, so the two handlers never duplicate these field
+// names or their derivation out of the underlying token row.
+type tokenReportBase struct {
+	Name               string
+	TotalGranted       int
+	TotalUsed          int
+	TotalAvailable     int
+	UnlimitedQuota     bool
+	ModelLimitsEnabled bool
+	ModelLimits        map[string]bool
+}
+
+func buildTokenReportBase(token *model.Token) tokenReportBase {
+	return tokenReportBase{
+		Name:               token.Name,
+		TotalGranted:       token.RemainQuota + token.UsedQuota,
+		TotalUsed:          token.UsedQuota,
+		TotalAvailable:     token.RemainQuota,
+		UnlimitedQuota:     token.UnlimitedQuota,
+		ModelLimitsEnabled: token.ModelLimitsEnabled,
+		ModelLimits:        token.GetModelLimitsMap(),
+	}
+}
+
+// effectiveTokenStatus derives a token's status as of now without persisting
+// anything, applying the fixed precedence disabled -> expired -> exhausted ->
+// enabled. It matches the checks model.ValidateUserToken applies on the relay
+// path, so the public key check page never contradicts the console.
+func effectiveTokenStatus(token *model.Token, now int64) int {
+	if token.Status == common.TokenStatusDisabled {
+		return common.TokenStatusDisabled
+	}
+	if token.ExpiredTime != -1 && token.ExpiredTime < now {
+		return common.TokenStatusExpired
+	}
+	if !token.UnlimitedQuota && token.RemainQuota <= 0 {
+		return common.TokenStatusExhausted
+	}
+	return common.TokenStatusEnabled
+}
+
+// normalizeTokenKey applies the same normalization as relay and read-only
+// token authentication (middleware.TokenAuthReadOnly): trim whitespace, strip
+// a leading Bearer/bearer prefix, strip a leading sk- prefix, and keep only
+// the segment before the first remaining "-". This lets a key pasted in any
+// of those forms resolve to the same token.
+func normalizeTokenKey(key string) string {
+	key = strings.TrimSpace(key)
+	if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
+		key = strings.TrimSpace(key[len("Bearer "):])
+	}
+	key = strings.TrimPrefix(key, "sk-")
+	parts := strings.Split(key, "-")
+	return parts[0]
+}
+
+// resolveEffectiveTokenGroup reports the group that actually applies to a
+// token: the token's own group when set, otherwise the owning user's group.
+func resolveEffectiveTokenGroup(token *model.Token) (string, error) {
+	if token.Group != "" {
+		return token.Group, nil
+	}
+	return model.GetUserGroup(token.UserId, false)
+}
+
 func GetTokenUsage(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
@@ -250,6 +319,7 @@ func GetTokenUsage(c *gin.Context) {
 		return
 	}
 
+	base := buildTokenReportBase(token)
 	expiredAt := token.ExpiredTime
 	if expiredAt == -1 {
 		expiredAt = 0
@@ -260,16 +330,121 @@ func GetTokenUsage(c *gin.Context) {
 		"message": "ok",
 		"data": gin.H{
 			"object":               "token_usage",
-			"name":                 token.Name,
-			"total_granted":        token.RemainQuota + token.UsedQuota,
-			"total_used":           token.UsedQuota,
-			"total_available":      token.RemainQuota,
-			"unlimited_quota":      token.UnlimitedQuota,
-			"model_limits":         token.GetModelLimitsMap(),
-			"model_limits_enabled": token.ModelLimitsEnabled,
+			"name":                 base.Name,
+			"total_granted":        base.TotalGranted,
+			"total_used":           base.TotalUsed,
+			"total_available":      base.TotalAvailable,
+			"unlimited_quota":      base.UnlimitedQuota,
+			"model_limits":         base.ModelLimits,
+			"model_limits_enabled": base.ModelLimitsEnabled,
 			"expires_at":           expiredAt,
 		},
 	})
+}
+
+// checkTokenRequest is the JSON body for the public POST /api/token/check
+// endpoint. The key travels in the body only, never in the URL or query
+// string, so it cannot leak into access logs or Referer headers.
+type checkTokenRequest struct {
+	Key string `json:"key"`
+}
+
+// tokenCheckResponse is the report returned by the public key check and
+// setup-script endpoints. It deliberately omits every account identity field
+// (user id, username, email): the person holding a key is not necessarily the
+// account owner.
+type tokenCheckResponse struct {
+	Name               string          `json:"name"`
+	Group              string          `json:"group"`
+	Status             int             `json:"status"`
+	UnlimitedQuota     bool            `json:"unlimited_quota"`
+	TotalGranted       int             `json:"total_granted"`
+	TotalUsed          int             `json:"total_used"`
+	TotalAvailable     int             `json:"total_available"`
+	ExpiresAt          int64           `json:"expires_at"`
+	CreatedTime        int64           `json:"created_time"`
+	AccessedTime       int64           `json:"accessed_time"`
+	ModelLimitsEnabled bool            `json:"model_limits_enabled"`
+	ModelLimits        map[string]bool `json:"model_limits"`
+	AvailableModels    []string        `json:"available_models"`
+}
+
+// buildTokenCheckReport resolves the token's effective group and status and
+// assembles the public report. It performs no database write.
+func buildTokenCheckReport(token *model.Token) (*tokenCheckResponse, error) {
+	group, err := resolveEffectiveTokenGroup(token)
+	if err != nil {
+		return nil, err
+	}
+	base := buildTokenReportBase(token)
+	availableModels := model.GetGroupEnabledModels(group)
+	if availableModels == nil {
+		availableModels = []string{}
+	}
+	return &tokenCheckResponse{
+		Name:               base.Name,
+		Group:              group,
+		Status:             effectiveTokenStatus(token, common.GetTimestamp()),
+		UnlimitedQuota:     base.UnlimitedQuota,
+		TotalGranted:       base.TotalGranted,
+		TotalUsed:          base.TotalUsed,
+		TotalAvailable:     base.TotalAvailable,
+		ExpiresAt:          token.ExpiredTime,
+		CreatedTime:        token.CreatedTime,
+		AccessedTime:       token.AccessedTime,
+		ModelLimitsEnabled: base.ModelLimitsEnabled,
+		ModelLimits:        base.ModelLimits,
+		AvailableModels:    availableModels,
+	}, nil
+}
+
+func respondTokenCheckKeyRequired(c *gin.Context) {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"success": false,
+		"message": common.TranslateMessage(c, i18n.MsgTokenNotProvided),
+	})
+}
+
+func respondTokenCheckServerError(c *gin.Context) {
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"success": false,
+		"message": common.TranslateMessage(c, i18n.MsgTokenGetInfoFailed),
+	})
+}
+
+// CheckTokenUsage is the public, unauthenticated POST /api/token/check
+// handler. It reports a key's effective status and usage report without
+// requiring an account or session, and without mutating any stored state.
+func CheckTokenUsage(c *gin.Context) {
+	var req checkTokenRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		respondTokenCheckKeyRequired(c)
+		return
+	}
+	key := normalizeTokenKey(req.Key)
+	if key == "" {
+		respondTokenCheckKeyRequired(c)
+		return
+	}
+
+	token, err := model.GetTokenByKey(key, false)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			common.ApiErrorI18n(c, i18n.MsgTokenInvalid)
+			return
+		}
+		common.SysError("failed to get token for public check: " + err.Error())
+		respondTokenCheckServerError(c)
+		return
+	}
+
+	report, err := buildTokenCheckReport(token)
+	if err != nil {
+		common.SysError("failed to resolve effective group for public check: " + err.Error())
+		respondTokenCheckServerError(c)
+		return
+	}
+	common.ApiSuccess(c, report)
 }
 
 func AddToken(c *gin.Context) {

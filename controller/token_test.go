@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -78,6 +79,14 @@ func openTokenControllerTestDB(t *testing.T) *gorm.DB {
 	common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
 	common.RedisEnabled = false
 
+	// Wires common.TranslateMessage to the real go-i18n-backed implementation
+	// (locale files are compiled in via go:embed, so this is safe regardless
+	// of the test binary's working directory) so tests can assert on actual
+	// localized, template-substituted message content instead of raw keys.
+	if err := i18n.Init(); err != nil {
+		t.Fatalf("failed to init i18n: %v", err)
+	}
+
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -85,6 +94,18 @@ func openTokenControllerTestDB(t *testing.T) *gorm.DB {
 	}
 	model.DB = db
 	model.LOG_DB = db
+
+	// model.GetTokenByKey (and other model-layer queries) build their WHERE
+	// clause with the dialect-specific quoted column name model.InitDB()
+	// normally computes at startup. A test that never calls InitDB never
+	// gets that column name, so InitLogDB — the lightweight branch taken
+	// when LOG_SQL_DSN is unset, which just recomputes those column names
+	// for the already-open DB — is called here instead of duplicating that
+	// unexported logic.
+	t.Setenv("LOG_SQL_DSN", "")
+	if err := model.InitLogDB(); err != nil {
+		t.Fatalf("failed to init log db: %v", err)
+	}
 
 	t.Cleanup(func() {
 		sqlDB, err := db.DB()

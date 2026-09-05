@@ -341,3 +341,11 @@ const (
 	MsgCustomOAuthBindingNotFound   = "custom_oauth.binding_not_found"
 	MsgCustomOAuthProviderIdInvalid = "custom_oauth.provider_id_field_invalid"
 )
+
+// Public setup-script endpoint messages (GET /api/setup/script)
+const (
+	MsgSetupScriptUnknownApp      = "setup_script.unknown_app"
+	MsgSetupScriptUnknownOS       = "setup_script.unknown_os"
+	MsgSetupScriptSlotRequired    = "setup_script.slot_required"
+	MsgSetupScriptModelNotAllowed = "setup_script.model_not_allowed"
+)

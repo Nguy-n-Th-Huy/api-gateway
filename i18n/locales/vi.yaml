@@ -287,3 +287,9 @@ custom_oauth.name_empty: "Tên nhà cung cấp không được để trống"
 custom_oauth.has_bindings: "Không thể xóa nhà cung cấp đang có người dùng liên kết"
 custom_oauth.binding_not_found: "Không tìm thấy liên kết OAuth"
 custom_oauth.provider_id_field_invalid: "Không thể trích xuất ID người dùng từ phản hồi của nhà cung cấp"
+
+# Thông báo cho endpoint script cài đặt công khai
+setup_script.unknown_app: "Ứng dụng không được hỗ trợ"
+setup_script.unknown_os: "Hệ điều hành không được hỗ trợ"
+setup_script.slot_required: "Vui lòng chọn một mô hình cho {{.Slot}}"
+setup_script.model_not_allowed: "Mô hình {{.Model}} không được bật cho nhóm của khóa này"
