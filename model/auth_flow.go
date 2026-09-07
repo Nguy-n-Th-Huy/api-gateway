@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -22,11 +23,49 @@ const (
 	AuthFlowPurposePasskeyStepUp     = "passkey_step_up"
 	AuthFlowPurposeTelegramBind      = "telegram_bind"
 	AuthFlowPurposeTelegramAssertion = "telegram_assertion"
-	AuthFlowIntentLogin              = "login"
-	AuthFlowIntentBind               = "bind"
-	AuthFlowTokenBytes               = 32
-	AuthFlowDefaultCleanupRetention  = 24 * time.Hour
+	// AuthFlowPurposeTelegramLink scopes the bot-issued, browser-redeemed
+	// link code flow. It is distinct from AuthFlowPurposeTelegramBind, which
+	// backs the existing Login Widget binding path.
+	AuthFlowPurposeTelegramLink     = "telegram_link"
+	AuthFlowIntentLogin             = "login"
+	AuthFlowIntentBind              = "bind"
+	AuthFlowTokenBytes              = 32
+	AuthFlowDefaultCleanupRetention = 24 * time.Hour
 )
+
+// telegramLinkCodeAlphabet excludes visually ambiguous characters (0/O,
+// 1/I/L) so a code read from a chat can be typed back reliably. It is
+// upper-case only; NormalizeTelegramLinkCode upper-cases whatever a person
+// actually types before it is hashed and matched.
+const telegramLinkCodeAlphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+
+// TelegramLinkCodeLength is the length of a generated link code. At this
+// alphabet size that is roughly 2^40 of entropy over the code's short
+// lifetime — not enough alone, so redemption is additionally rate limited
+// and its failure modes are indistinguishable (see design.md).
+const TelegramLinkCodeLength = 8
+
+// GenerateTelegramLinkCode returns a random, human-typeable code drawn from
+// telegramLinkCodeAlphabet.
+func GenerateTelegramLinkCode() (string, error) {
+	alphabetSize := big.NewInt(int64(len(telegramLinkCodeAlphabet)))
+	code := make([]byte, TelegramLinkCodeLength)
+	for i := range code {
+		n, err := rand.Int(rand.Reader, alphabetSize)
+		if err != nil {
+			return "", fmt.Errorf("generate telegram link code: %w", err)
+		}
+		code[i] = telegramLinkCodeAlphabet[n.Int64()]
+	}
+	return string(code), nil
+}
+
+// NormalizeTelegramLinkCode upper-cases a caller-submitted code before it is
+// hashed or matched, so a code copied from a chat in any case redeems the
+// same flow it was issued for.
+func NormalizeTelegramLinkCode(code string) string {
+	return strings.ToUpper(strings.TrimSpace(code))
+}
 
 var (
 	ErrAuthFlowInvalid  = errors.New("auth flow is invalid")
@@ -62,6 +101,12 @@ type AuthFlowCreate struct {
 	SessionId string
 	Payload   string
 	ExpiresAt time.Time
+	// Token, when non-empty, is used as the flow's opaque token instead of a
+	// generated one. Only its hash is ever persisted, so a short
+	// human-typeable code (e.g. a Telegram link code) can use the same
+	// single-use, expiring, transactionally-consumed machinery as every
+	// other auth flow.
+	Token string
 }
 
 type AuthFlowMatch struct {
@@ -97,11 +142,14 @@ func CreateAuthFlow(input AuthFlowCreate) (string, *AuthFlow, error) {
 	if strings.TrimSpace(input.Purpose) == "" || input.ExpiresAt.IsZero() || !input.ExpiresAt.After(time.Now()) {
 		return "", nil, ErrAuthFlowInvalid
 	}
-	random := make([]byte, AuthFlowTokenBytes)
-	if _, err := rand.Read(random); err != nil {
-		return "", nil, fmt.Errorf("generate auth flow token: %w", err)
+	token := input.Token
+	if token == "" {
+		random := make([]byte, AuthFlowTokenBytes)
+		if _, err := rand.Read(random); err != nil {
+			return "", nil, fmt.Errorf("generate auth flow token: %w", err)
+		}
+		token = base64.RawURLEncoding.EncodeToString(random)
 	}
-	token := base64.RawURLEncoding.EncodeToString(random)
 	flow := &AuthFlow{
 		TokenHash: authFlowTokenHash(token),
 		Purpose:   input.Purpose,

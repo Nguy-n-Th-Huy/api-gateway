@@ -44,8 +44,15 @@ func (h SePayExpiryHandler) Run(ctx context.Context, task *model.SystemTask, run
 
 		var topUps, subOrders int64
 		var topUpErr, subErr error
-		topUps, topUpErr = model.ExpireSePayTopUpsBulk(300)
+		var expiredTopUps []model.TopUp
+		expiredTopUps, topUpErr = model.ExpireSePayTopUpsBulkDetailed(300)
+		topUps = int64(len(expiredTopUps))
 		subOrders, subErr = model.ExpireSePaySubscriptionOrdersBulk(300)
+		if topUpErr == nil {
+			for _, expired := range expiredTopUps {
+				EmitTelegramExpiredEvent(expired.UserId, expired.TradeNo)
+			}
+		}
 		if topUpErr != nil || subErr != nil {
 			errMsg := ""
 			if topUpErr != nil {

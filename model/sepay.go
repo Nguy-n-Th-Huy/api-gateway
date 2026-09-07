@@ -26,8 +26,8 @@ const (
 )
 
 const (
-	sePayMemoRandomLen       = 14
-	sePayTradeNoInsertRetries = 5
+	sePayMemoRandomLen              = 14
+	sePayTradeNoInsertRetries       = 5
 	sePayOrderExpiryFallbackMinutes = 30
 )
 
@@ -203,6 +203,13 @@ func RechargeSePay(tradeNo string, transferAmountVND int64, callerIp string) (al
 	}
 	common.SysLog(fmt.Sprintf("SePay充值成功 trade_no=%s user_id=%d quota_to_add=%d money=%.0f", topUp.TradeNo, topUp.UserId, quotaToAdd, topUp.Money))
 	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%.0f", logger.LogQuota(quotaToAdd), topUp.Money), callerIp, PaymentMethodSePay, PaymentProviderSePay)
+	// Best-effort outbound notification to a linked Telegram account. This
+	// runs after the transaction above has already committed, so a slow or
+	// unreachable callback can never delay, roll back, or duplicate the
+	// credit (specs/telegram/bot-events/spec.md).
+	if TelegramCreditedEventHook != nil {
+		TelegramCreditedEventHook(topUp.UserId, topUp.TradeNo, topUp.Amount)
+	}
 	return false, nil
 }
 
@@ -291,8 +298,48 @@ func SePayOrderExpiryUnix(createTime int64) int64 {
 // (D4, legacy-gateway-removal). Returns the number of rows updated.
 // The caller may pass limit <= 0 for an unbounded run.
 func ExpireSePayTopUpsBulk(limit int) (int64, error) {
+	expired, err := ExpireSePayTopUpsBulkDetailed(limit)
+	return int64(len(expired)), err
+}
+
+// ExpireSePayTopUpsBulkDetailed is the ExpireSePayTopUpsBulk counterpart that
+// additionally returns the row of every top-up it expired, so the Telegram
+// bot integration can emit an "expired" event identifying the owning account
+// and trade number for each one once the update has committed
+// (specs/telegram/bot-events/spec.md, "Top-up expired"). Selecting the
+// matching rows before updating them by primary key — rather than issuing one
+// WHERE-scoped UPDATE — is what makes the affected set knowable on every
+// supported database.
+func ExpireSePayTopUpsBulkDetailed(limit int) ([]TopUp, error) {
 	cutoff := common.GetTimestamp() - int64(sePayExpiryWindowMinutes())*60
-	return expireSePayRowsByProvider(&TopUp{}, limit, cutoff)
+	now := common.GetTimestamp()
+
+	query := DB.Where(
+		"status = ? AND payment_provider = ? AND create_time > 0 AND create_time <= ?",
+		common.TopUpStatusPending, PaymentProviderSePay, cutoff,
+	).Order("id asc")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	var rows []TopUp
+	if err := query.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+
+	ids := make([]int, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.Id)
+	}
+	if err := DB.Model(&TopUp{}).Where("id IN ?", ids).Updates(map[string]interface{}{
+		"status":        common.TopUpStatusExpired,
+		"complete_time": now,
+	}).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 // ExpireSePaySubscriptionOrdersBulk is the subscription-order counterpart of

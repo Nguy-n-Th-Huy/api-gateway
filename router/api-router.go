@@ -103,6 +103,12 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/sepay/order/:trade_no", controller.SePayGetOrder)
 				selfRoute.POST("/aff_transfer", middleware.UserCriticalRateLimit("aff-transfer"), controller.TransferAffQuota)
 				selfRoute.PUT("/setting", controller.UpdateUserSetting)
+				// Bot-issued Telegram link code redemption. Rate limited per
+				// session (UserCriticalRateLimit) and per client address
+				// (CriticalRateLimit) — see specs/telegram/account-link/spec.md,
+				// "Link codes carry a linking intent from a chat to a browser
+				// session".
+				selfRoute.POST("/telegram/link/confirm", middleware.CriticalRateLimit(), middleware.UserCriticalRateLimit("telegram-link"), controller.TelegramLinkRedeem)
 
 				// 2FA routes
 				selfRoute.GET("/2fa/status", controller.Get2FAStatus)
