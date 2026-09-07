@@ -12,17 +12,21 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
-	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 )
 
+// sePayMaxTopUpAmount mirrors service.SePayMaxTopUpAmount, the per-order
+// upper bound enforced inside the shared order-creation producer.
+const sePayMaxTopUpAmount = service.SePayMaxTopUpAmount
+
 const (
-	sePayMaxTopUpAmount = int64(9999)
 	sePayVietQRTemplate = "compact2"
 	sePayMemoRegexLen   = 16
 )
@@ -59,17 +63,17 @@ type sePaySubscriptionPayRequest struct {
 }
 
 type sePayOrderResponse struct {
-	TradeNo      string  `json:"trade_no"`
-	Memo         string  `json:"memo"`
-	PayableVND   int64   `json:"payable_vnd"`
-	BankAccount  string  `json:"bank_account"`
-	BankCode     string  `json:"bank_code"`
-	AccountName  string  `json:"account_holder"`
-	VietQRURL    string  `json:"vietqr_url"`
-	CreateTime   int64   `json:"create_time"`
-	ExpireTime   int64   `json:"expire_time"`
-	Status       string  `json:"status,omitempty"`
-	Money        float64 `json:"money"`
+	TradeNo     string  `json:"trade_no"`
+	Memo        string  `json:"memo"`
+	PayableVND  int64   `json:"payable_vnd"`
+	BankAccount string  `json:"bank_account"`
+	BankCode    string  `json:"bank_code"`
+	AccountName string  `json:"account_holder"`
+	VietQRURL   string  `json:"vietqr_url"`
+	CreateTime  int64   `json:"create_time"`
+	ExpireTime  int64   `json:"expire_time"`
+	Status      string  `json:"status,omitempty"`
+	Money       float64 `json:"money"`
 }
 
 type sePayMatch struct {
@@ -79,78 +83,28 @@ type sePayMatch struct {
 
 type sePayMatchList []sePayMatch
 
-// SePayRequestTopUp is POST /api/user/sepay/pay. Compliance gate, config
-// gate, minimum-amount check, ValidateTopUpQuotaCapacity, decimal VND
-// conversion via common/quota_math.go helpers, pending order insert with a
-// unique trade_no, and a response carrying memo / payable VND / bank details
-// / VietQR image URL / trade_no / expiry (task 3.1).
+// SePayRequestTopUp is POST /api/user/sepay/pay. It parses the request and
+// delegates the full validation-through-insertion chain (compliance gate,
+// config gate, minimum-amount check, per-order maximum,
+// ValidateTopUpQuotaCapacity, currency conversion, and pending order insert
+// with a unique trade_no) to service.CreateSePayTopUpOrder — the single
+// producer also used by the Telegram bot integration surface — so a
+// bot-initiated order can never diverge from a console-created one.
 func SePayRequestTopUp(c *gin.Context) {
-	if !requirePaymentCompliance(c) {
-		return
-	}
-	if !setting.IsSePayConfigured() {
-		common.ApiErrorMsg(c, "SePay 未配置")
-		return
-	}
-
 	var req sePayTopUpRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		common.ApiErrorMsg(c, "参数错误")
 		return
 	}
 
-	minTopUp := sePayEffectiveMinTopUp()
-	if req.Amount < int64(minTopUp) {
-		common.ApiErrorMsg(c, fmt.Sprintf("充值数量不能小于 %d", minTopUp))
-		return
-	}
-	if req.Amount > sePayMaxTopUpAmount {
-		common.ApiErrorMsg(c, fmt.Sprintf("单笔充值数量不能大于 %d", sePayMaxTopUpAmount))
-		return
-	}
-
 	userId := c.GetInt("id")
-	creditedQuota, err := validateTopUpQuota(req.Amount)
+	topUp, payMoney, payableVND, err := service.CreateSePayTopUpOrder(c.Request.Context(), userId, req.Amount)
 	if err != nil {
+		if errors.Is(err, service.ErrPaymentComplianceRequired) {
+			common.ApiErrorI18n(c, i18n.MsgPaymentComplianceRequired)
+			return
+		}
 		common.ApiErrorMsg(c, err.Error())
-		return
-	}
-	if err := model.ValidateTopUpQuotaCapacity(userId, creditedQuota); err != nil {
-		common.ApiErrorMsg(c, err.Error())
-		return
-	}
-
-	group, err := model.GetUserGroup(userId, true)
-	if err != nil {
-		common.ApiErrorMsg(c, "获取用户分组失败")
-		return
-	}
-	payMoney, payableVND, err := sePayPayMoneyFromAmount(req.Amount, group)
-	if err != nil {
-		common.ApiErrorMsg(c, err.Error())
-		return
-	}
-
-	// Amount column stores the display amount, matching the pre-existing
-	// RequestEpay behavior: tokens mode stores tokens/QuotaPerUnit.
-	storedAmount := req.Amount
-	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
-		storedAmount = decimal.NewFromInt(req.Amount).
-			Div(decimal.NewFromFloat(common.QuotaPerUnit)).IntPart()
-	}
-
-	topUp := &model.TopUp{
-		UserId:          userId,
-		Amount:          storedAmount,
-		Money:           payMoney,
-		PaymentMethod:   model.PaymentMethodSePay,
-		PaymentProvider: model.PaymentProviderSePay,
-		CreateTime:      time.Now().Unix(),
-		Status:          common.TopUpStatusPending,
-	}
-	if err := model.InsertSePayTopUp(topUp); err != nil {
-		logger.LogError(c.Request.Context(), fmt.Sprintf("SePay 创建充值订单失败 user_id=%d amount=%d error=%q", userId, req.Amount, err.Error()))
-		common.ApiErrorMsg(c, "创建订单失败")
 		return
 	}
 	common.ApiSuccess(c, buildSePayOrderResponse(topUp.TradeNo, topUp.CreateTime, payMoney, payableVND, topUp.Status))
@@ -205,7 +159,7 @@ func SePayRequestSubscriptionPay(c *gin.Context) {
 		common.ApiErrorMsg(c, "获取用户分组失败")
 		return
 	}
-	payMoney, payableVND, err := sePayPayMoneyFromDecimal(decimal.NewFromFloat(plan.PriceAmount), group)
+	payMoney, payableVND, err := service.SePayPayMoneyFromDecimal(decimal.NewFromFloat(plan.PriceAmount), group)
 	if err != nil {
 		common.ApiErrorMsg(c, err.Error())
 		return
@@ -461,54 +415,8 @@ func parseSePayApiKeyAuth(header string) (string, bool) {
 	return fields[1], true
 }
 
-// sePayPayMoneyFromAmount is the top-up path of the D5 conversion; the plan
-// price path uses sePayPayMoneyFromDecimal so both share one helper.
-func sePayPayMoneyFromAmount(amount int64, group string) (float64, int64, error) {
-	dAmount := decimal.NewFromInt(amount)
-	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
-		dAmount = dAmount.Div(decimal.NewFromFloat(common.QuotaPerUnit))
-	}
-	return sePayPayMoneyFromDecimal(dAmount, group)
-}
-
-// sePayPayMoneyFromDecimal applies the D5 formula:
-// payable_vnd = round(amount × price × topup_group_ratio × discount).
-// Discount tiers by preset are only meaningful for top-up amounts; the caller
-// passes the same amount both as the input and for the discount lookup.
-func sePayPayMoneyFromDecimal(amount decimal.Decimal, group string) (float64, int64, error) {
-	topupGroupRatio := common.GetTopupGroupRatio(group)
-	if topupGroupRatio == 0 {
-		topupGroupRatio = 1
-	}
-	dPrice := decimal.NewFromFloat(operation_setting.Price)
-	dRatio := decimal.NewFromFloat(topupGroupRatio)
-	discount := 1.0
-	// Discount tiers are keyed by preset integer amounts; only exact matches
-	// apply. Plans and non-preset amounts skip.
-	if amtInt, exact := amount.Float64(); exact {
-		if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[int(amtInt)]; ok && ds > 0 {
-			discount = ds
-		}
-	}
-	dDiscount := decimal.NewFromFloat(discount)
-	payMoneyDec := amount.Mul(dPrice).Mul(dRatio).Mul(dDiscount)
-	payableVND := payMoneyDec.Round(0).IntPart()
-	if payableVND <= 0 {
-		return 0, 0, errors.New("充值金额过低")
-	}
-	payMoneyFloat, _ := payMoneyDec.Round(0).Float64()
-	return payMoneyFloat, payableVND, nil
-}
-
 func sePayPayableVNDIntFromMoney(money float64) int64 {
 	return decimal.NewFromFloat(money).Round(0).IntPart()
-}
-
-func sePayEffectiveMinTopUp() int {
-	if setting.SePayMinTopUp > 0 {
-		return setting.SePayMinTopUp
-	}
-	return operation_setting.MinTopUp
 }
 
 func buildSePayOrderResponse(tradeNo string, createTime int64, money float64, payableVND int64, status string) sePayOrderResponse {

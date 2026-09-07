@@ -227,71 +227,29 @@ func GetTokenStatus(c *gin.Context) {
 	})
 }
 
-// tokenReportBase holds the quota/config fields shared between the
-// authenticated GET /api/usage/token report and the public POST
-// /api/token/check report, so the two handlers never duplicate these field
-// names or their derivation out of the underlying token row.
-type tokenReportBase struct {
-	Name               string
-	TotalGranted       int
-	TotalUsed          int
-	TotalAvailable     int
-	UnlimitedQuota     bool
-	ModelLimitsEnabled bool
-	ModelLimits        map[string]bool
-}
+// tokenReportBase, buildTokenReportBase, effectiveTokenStatus,
+// resolveEffectiveTokenGroup, tokenCheckResponse and buildTokenCheckReport
+// delegate to the single shared producer in service/token_report.go, so this
+// controller, the setup script, and (later) the Telegram bot integration
+// surface all report on a key with the exact same field set and semantics.
+// The names stay local to this package because other call sites in this
+// package (and this package's own tests) reference them directly.
+type tokenReportBase = service.TokenReportBase
 
 func buildTokenReportBase(token *model.Token) tokenReportBase {
-	return tokenReportBase{
-		Name:               token.Name,
-		TotalGranted:       token.RemainQuota + token.UsedQuota,
-		TotalUsed:          token.UsedQuota,
-		TotalAvailable:     token.RemainQuota,
-		UnlimitedQuota:     token.UnlimitedQuota,
-		ModelLimitsEnabled: token.ModelLimitsEnabled,
-		ModelLimits:        token.GetModelLimitsMap(),
-	}
+	return service.BuildTokenReportBase(token)
 }
 
-// effectiveTokenStatus derives a token's status as of now without persisting
-// anything, applying the fixed precedence disabled -> expired -> exhausted ->
-// enabled. It matches the checks model.ValidateUserToken applies on the relay
-// path, so the public key check page never contradicts the console.
 func effectiveTokenStatus(token *model.Token, now int64) int {
-	if token.Status == common.TokenStatusDisabled {
-		return common.TokenStatusDisabled
-	}
-	if token.ExpiredTime != -1 && token.ExpiredTime < now {
-		return common.TokenStatusExpired
-	}
-	if !token.UnlimitedQuota && token.RemainQuota <= 0 {
-		return common.TokenStatusExhausted
-	}
-	return common.TokenStatusEnabled
+	return service.EffectiveTokenStatus(token, now)
 }
 
-// normalizeTokenKey applies the same normalization as relay and read-only
-// token authentication (middleware.TokenAuthReadOnly): trim whitespace, strip
-// a leading Bearer/bearer prefix, strip a leading sk- prefix, and keep only
-// the segment before the first remaining "-". This lets a key pasted in any
-// of those forms resolve to the same token.
 func normalizeTokenKey(key string) string {
-	key = strings.TrimSpace(key)
-	if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
-		key = strings.TrimSpace(key[len("Bearer "):])
-	}
-	key = strings.TrimPrefix(key, "sk-")
-	parts := strings.Split(key, "-")
-	return parts[0]
+	return service.NormalizeTokenKey(key)
 }
 
-// resolveEffectiveTokenGroup reports the group that actually applies to a
-// token: the token's own group when set, otherwise the owning user's group.
 func resolveEffectiveTokenGroup(token *model.Token) (string, error) {
-	if token.Group != "" {
-		return token.Group, nil
-	}
-	return model.GetUserGroup(token.UserId, false)
+	return service.ResolveEffectiveTokenGroup(token)
 }
 
 func GetTokenUsage(c *gin.Context) {
@@ -352,52 +310,16 @@ type checkTokenRequest struct {
 }
 
 // tokenCheckResponse is the report returned by the public key check and
-// setup-script endpoints. It deliberately omits every account identity field
-// (user id, username, email): the person holding a key is not necessarily the
-// account owner.
-type tokenCheckResponse struct {
-	Name               string          `json:"name"`
-	Group              string          `json:"group"`
-	Status             int             `json:"status"`
-	UnlimitedQuota     bool            `json:"unlimited_quota"`
-	TotalGranted       int             `json:"total_granted"`
-	TotalUsed          int             `json:"total_used"`
-	TotalAvailable     int             `json:"total_available"`
-	ExpiresAt          int64           `json:"expires_at"`
-	CreatedTime        int64           `json:"created_time"`
-	AccessedTime       int64           `json:"accessed_time"`
-	ModelLimitsEnabled bool            `json:"model_limits_enabled"`
-	ModelLimits        map[string]bool `json:"model_limits"`
-	AvailableModels    []string        `json:"available_models"`
-}
+// setup-script endpoints. It is an alias for the shared producer's report
+// type (service.TokenCheckReport) rather than a copy, so the field set and
+// its JSON tags cannot drift from the one producer.
+type tokenCheckResponse = service.TokenCheckReport
 
 // buildTokenCheckReport resolves the token's effective group and status and
-// assembles the public report. It performs no database write.
+// assembles the public report by delegating to the shared producer. It
+// performs no database write.
 func buildTokenCheckReport(token *model.Token) (*tokenCheckResponse, error) {
-	group, err := resolveEffectiveTokenGroup(token)
-	if err != nil {
-		return nil, err
-	}
-	base := buildTokenReportBase(token)
-	availableModels := model.GetGroupEnabledModels(group)
-	if availableModels == nil {
-		availableModels = []string{}
-	}
-	return &tokenCheckResponse{
-		Name:               base.Name,
-		Group:              group,
-		Status:             effectiveTokenStatus(token, common.GetTimestamp()),
-		UnlimitedQuota:     base.UnlimitedQuota,
-		TotalGranted:       base.TotalGranted,
-		TotalUsed:          base.TotalUsed,
-		TotalAvailable:     base.TotalAvailable,
-		ExpiresAt:          token.ExpiredTime,
-		CreatedTime:        token.CreatedTime,
-		AccessedTime:       token.AccessedTime,
-		ModelLimitsEnabled: base.ModelLimitsEnabled,
-		ModelLimits:        base.ModelLimits,
-		AvailableModels:    availableModels,
-	}, nil
+	return service.BuildTokenCheckReport(token)
 }
 
 func respondTokenCheckKeyRequired(c *gin.Context) {

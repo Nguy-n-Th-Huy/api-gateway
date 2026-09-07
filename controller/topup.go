@@ -8,6 +8,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
@@ -90,33 +91,18 @@ func getMinTopup() int64 {
 	return int64(minTopup)
 }
 
+// getTopUpQuota, getMaxTopUpAmount and validateTopUpQuota delegate to the
+// single producer in service/topup_quota.go, so the console top-up handler
+// and the SePay order-creation chain can never diverge on how an amount
+// converts to a credited quota or on the per-order maximum. The names stay
+// local to this package because this package's own tests reference them
+// directly.
 func getTopUpQuota(amount int64) (int, error) {
-	quota := decimal.NewFromInt(amount)
-	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
-		quotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-		quota = decimal.NewFromInt(quota.Div(quotaPerUnit).IntPart()).Mul(quotaPerUnit)
-	} else {
-		quota = quota.Mul(decimal.NewFromFloat(common.QuotaPerUnit))
-	}
-	return common.WalletQuotaFromDecimalStrict(quota)
+	return service.TopUpQuotaFromAmount(amount)
 }
 
 func getMaxTopUpAmount() int64 {
-	if common.QuotaPerUnit <= 0 {
-		return 0
-	}
-	quotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-	maxStoredAmount := decimal.NewFromInt(common.MaxWalletQuota).
-		Div(quotaPerUnit).
-		Floor()
-	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
-		return maxStoredAmount.Add(decimal.NewFromInt(1)).
-			Mul(quotaPerUnit).
-			Ceil().
-			Sub(decimal.NewFromInt(1)).
-			IntPart()
-	}
-	return maxStoredAmount.IntPart()
+	return service.MaxTopUpAmount()
 }
 
 func validateCreditedQuota(quota decimal.Decimal) (int, error) {
@@ -131,15 +117,7 @@ func validateCreditedQuota(quota decimal.Decimal) (int, error) {
 }
 
 func validateTopUpQuota(amount int64) (int, error) {
-	quota, err := getTopUpQuota(amount)
-	if err == nil && quota > 0 {
-		return quota, nil
-	}
-	maxAmount := getMaxTopUpAmount()
-	if maxAmount > 0 && amount > maxAmount {
-		return 0, fmt.Errorf("单笔充值数量不能大于 %d", maxAmount)
-	}
-	return 0, errors.New("充值数量无效")
+	return service.ValidateTopUpQuota(amount)
 }
 
 func rejectInvalidCreditedQuota(c *gin.Context, userId int, quota decimal.Decimal) bool {
