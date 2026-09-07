@@ -150,6 +150,19 @@ export async function startTelegramBind(): Promise<
   return res.data
 }
 
+/**
+ * Redeem a Telegram link code issued by the bot integration, binding the
+ * Telegram account identifier the code was issued for to the current
+ * session's account (specs/telegram/account-link, "Redemption requires an
+ * authenticated session").
+ */
+export async function redeemTelegramLinkCode(
+  code: string
+): Promise<ApiResponse> {
+  const res = await api.post('/api/user/telegram/link/confirm', { code })
+  return res.data
+}
+
 // ============================================================================
 // Login Session APIs
 // ============================================================================

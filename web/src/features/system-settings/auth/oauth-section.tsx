@@ -86,6 +86,11 @@ const oauthSchema = z.object({
   TelegramOAuthEnabled: z.boolean(),
   TelegramBotToken: z.string(),
   TelegramBotName: z.string(),
+  TelegramBotIntegrationEnabled: z.boolean(),
+  TelegramBotServiceKey: z.string(),
+  TelegramBotCallbackURL: z.string(),
+  TelegramBotCallbackSecret: z.string(),
+  TelegramHandleRequired: z.boolean(),
   LinuxDOOAuthEnabled: z.boolean(),
   LinuxDOClientId: z.string(),
   LinuxDOClientSecret: z.string(),
@@ -119,6 +124,11 @@ type FlatOAuthDefaults = {
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string
+  TelegramBotIntegrationEnabled: boolean
+  TelegramBotServiceKey: string
+  TelegramBotCallbackURL: string
+  TelegramBotCallbackSecret: string
+  TelegramHandleRequired: boolean
   LinuxDOOAuthEnabled: boolean
   LinuxDOClientId: string
   LinuxDOClientSecret: string
@@ -206,6 +216,11 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
   TelegramOAuthEnabled: defaults.TelegramOAuthEnabled,
   TelegramBotToken: defaults.TelegramBotToken ?? '',
   TelegramBotName: defaults.TelegramBotName ?? '',
+  TelegramBotIntegrationEnabled: defaults.TelegramBotIntegrationEnabled,
+  TelegramBotServiceKey: defaults.TelegramBotServiceKey ?? '',
+  TelegramBotCallbackURL: defaults.TelegramBotCallbackURL ?? '',
+  TelegramBotCallbackSecret: defaults.TelegramBotCallbackSecret ?? '',
+  TelegramHandleRequired: defaults.TelegramHandleRequired,
   LinuxDOOAuthEnabled: defaults.LinuxDOOAuthEnabled,
   LinuxDOClientId: defaults.LinuxDOClientId ?? '',
   LinuxDOClientSecret: defaults.LinuxDOClientSecret ?? '',
@@ -237,6 +252,11 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   TelegramOAuthEnabled: values.TelegramOAuthEnabled,
   TelegramBotToken: values.TelegramBotToken,
   TelegramBotName: values.TelegramBotName,
+  TelegramBotIntegrationEnabled: values.TelegramBotIntegrationEnabled,
+  TelegramBotServiceKey: values.TelegramBotServiceKey,
+  TelegramBotCallbackURL: values.TelegramBotCallbackURL,
+  TelegramBotCallbackSecret: values.TelegramBotCallbackSecret,
+  TelegramHandleRequired: values.TelegramHandleRequired,
   LinuxDOOAuthEnabled: values.LinuxDOOAuthEnabled,
   LinuxDOClientId: values.LinuxDOClientId,
   LinuxDOClientSecret: values.LinuxDOClientSecret,
@@ -369,9 +389,18 @@ export function OAuthSection(props: OAuthSectionProps) {
       })
     }
 
-    baselineRef.current = normalized
-    baselineSerializedRef.current = JSON.stringify(normalized)
-    form.reset(buildFormDefaults(normalized))
+    // TelegramBotServiceKey and TelegramBotCallbackSecret are write-only,
+    // matching SePayWebhookApiKey (payment-settings-section.tsx): the value
+    // just submitted must never come back into the field, even as this
+    // form's own post-save baseline, only ever blank until the next fetch.
+    const nextBaseline: FlatOAuthDefaults = {
+      ...normalized,
+      TelegramBotServiceKey: '',
+      TelegramBotCallbackSecret: '',
+    }
+    baselineRef.current = nextBaseline
+    baselineSerializedRef.current = JSON.stringify(nextBaseline)
+    form.reset(buildFormDefaults(nextBaseline))
   }
 
   const handleReset = () => {
@@ -981,6 +1010,152 @@ export function OAuthSection(props: OAuthSectionProps) {
                           ref={field.ref}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Alert className='lg:col-span-2'>
+                  <AlertTitle>{t('Bot Integration')}</AlertTitle>
+                  <AlertDescription>
+                    {t(
+                      'A separate, first-party Telegram bot can act on behalf of linked accounts through an audited service-to-service API. This is distinct from the Telegram login widget above.'
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <FormField
+                  control={form.control}
+                  name='TelegramBotIntegrationEnabled'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Enable Bot Integration')}</FormLabel>
+                        <FormDescription>
+                          {t(
+                            'Serves the bot API only once enabled and a service key is set; otherwise the surface stays hidden'
+                          )}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='TelegramHandleRequired'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>
+                          {t('Require Telegram Handle at Registration')}
+                        </FormLabel>
+                        <FormDescription>
+                          {t(
+                            'When enabled, the sign-up form requires a Telegram handle'
+                          )}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='TelegramBotServiceKey'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Bot Service Key')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='password'
+                          placeholder={t('Enter new key to update')}
+                          autoComplete='new-password'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'The single credential the bot presents as "Authorization: Bot <key>". Leave blank unless rotating the key.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='TelegramBotCallbackURL'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Event Callback URL')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={t('https://your-bot.example.com/callback')}
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Optional. Where credited/expired/linked events are delivered. No events are sent while empty.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='TelegramBotCallbackSecret'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Event Callback Secret')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='password'
+                          placeholder={t('Enter new secret to update')}
+                          autoComplete='new-password'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Signs outbound events with HMAC-SHA256 so the bot can reject forgeries. Leave blank unless rotating the secret.'
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -150,6 +150,14 @@ export type AuthSettings = {
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string
+  // Telegram bot integration — a separate, first-party bot acting on behalf
+  // of linked accounts through /api/bot/v1 (specs/telegram/bot-api). Distinct
+  // from the Telegram OAuth login widget above.
+  TelegramBotIntegrationEnabled: boolean
+  TelegramBotServiceKey: string
+  TelegramBotCallbackURL: string
+  TelegramBotCallbackSecret: string
+  TelegramHandleRequired: boolean
   LinuxDOOAuthEnabled: boolean
   LinuxDOClientId: string
   LinuxDOClientSecret: string

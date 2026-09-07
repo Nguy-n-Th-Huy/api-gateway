@@ -18,6 +18,11 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { z } from 'zod'
 
+import {
+  isValidTelegramHandle,
+  normalizeTelegramHandle,
+} from '@/lib/telegram-handle'
+
 // ============================================================================
 // Form Schemas
 // ============================================================================
@@ -27,6 +32,16 @@ export const loginFormSchema = z.object({
   password: z.string().min(1, 'Please enter your password'),
 })
 
+/**
+ * The Telegram handle field's format is always validated once a value is
+ * present, matching the server's rule (model.ValidateTelegramHandle: 5-32
+ * chars, letters/digits/underscore, starting with a letter). Whether the
+ * field is *required* depends on the server's `telegram_handle_required`
+ * status flag (specs/telegram/account-link, "Administrators can require a
+ * Telegram handle at registration"), which is not known when this module
+ * loads — the sign-up form enforces requiredness itself, the same way it
+ * already handles the conditionally required email field.
+ */
 export const registerFormSchema = z
   .object({
     username: z.string().min(1, 'Please enter your username'),
@@ -37,10 +52,21 @@ export const registerFormSchema = z
       .min(8, 'Password must be between 8 and 20 characters')
       .max(20, 'Password must be at most 20 characters long'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
+    telegramHandle: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match.",
     path: ['confirmPassword'],
+  })
+  .superRefine((data, ctx) => {
+    const normalized = normalizeTelegramHandle(data.telegramHandle ?? '')
+    if (normalized === '' || isValidTelegramHandle(normalized)) return
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        'Telegram handle must be 5-32 characters, start with a letter, and contain only letters, digits, and underscores',
+      path: ['telegramHandle'],
+    })
   })
 
 export const forgotPasswordFormSchema = z.object({

@@ -52,6 +52,7 @@ import {
 import { useStatus } from '@/hooks/use-status'
 import { isAuthBundle } from '@/lib/api'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
+import { normalizeTelegramHandle } from '@/lib/telegram-handle'
 import { cn } from '@/lib/utils'
 
 export function SignUpForm({
@@ -87,6 +88,10 @@ export function SignUpForm({
     validateTurnstile,
   })
 
+  const telegramHandleRequired = Boolean(
+    status?.telegram_handle_required ?? status?.data?.telegram_handle_required
+  )
+
   const form = useForm<z.infer<typeof registerFormSchema>>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
@@ -94,6 +99,7 @@ export function SignUpForm({
       email: '',
       password: '',
       confirmPassword: '',
+      telegramHandle: '',
     },
   })
 
@@ -156,6 +162,14 @@ export function SignUpForm({
       }
     }
 
+    const normalizedTelegramHandle = normalizeTelegramHandle(
+      data.telegramHandle ?? ''
+    )
+    if (telegramHandleRequired && !normalizedTelegramHandle) {
+      toast.error(t('Please enter your Telegram handle'))
+      return
+    }
+
     if (!validateTurnstile()) return
 
     setIsLoading(true)
@@ -167,6 +181,7 @@ export function SignUpForm({
         verification_code: verificationCode || undefined,
         aff_code: getAffiliateCode(),
         turnstile: turnstileToken,
+        telegram_username: normalizedTelegramHandle || undefined,
       })
 
       if (res?.success) {
@@ -289,6 +304,25 @@ export function SignUpForm({
               <FormLabel>{t('Confirm password')}</FormLabel>
               <FormControl>
                 <PasswordInput placeholder={t('Confirm password')} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Telegram Handle Field */}
+        <FormField
+          control={form.control}
+          name='telegramHandle'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                {telegramHandleRequired
+                  ? t('Telegram handle')
+                  : t('Telegram handle (optional)')}
+              </FormLabel>
+              <FormControl>
+                <Input placeholder={t('e.g. john_doe99')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

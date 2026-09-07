@@ -81,6 +81,8 @@ export interface UserProfile {
   oidc_id?: string
   /** Telegram ID (OAuth) */
   telegram_id?: string
+  /** Self-declared or Telegram-verified handle (display-only, never a lookup key) */
+  telegram_username?: string
   /** LinuxDO ID (OAuth) */
   linux_do_id?: string
 }
@@ -129,6 +131,7 @@ export interface UpdateUserRequest {
   display_name?: string
   password?: string
   original_password?: string
+  telegram_username?: string
 }
 
 /**

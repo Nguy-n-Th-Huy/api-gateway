@@ -56,6 +56,8 @@ import type { UserProfile, BindingItem } from '../../types'
 import { EmailBindDialog } from '../dialogs/email-bind-dialog'
 import { TelegramBindDialog } from '../dialogs/telegram-bind-dialog'
 import { WeChatBindDialog } from '../dialogs/wechat-bind-dialog'
+import { TelegramHandleSection } from './telegram-handle-section'
+import { TelegramLinkCodeSection } from './telegram-link-code-section'
 
 // ============================================================================
 // Account Bindings Tab Component
@@ -486,6 +488,21 @@ export function AccountBindingsTab({
             </div>
           )
         })}
+      </div>
+
+      {/* Telegram handle and link-code entry: an alternative path into the
+          same Telegram binding as the widget row above, not a replacement
+          for it. */}
+      <Separator className='my-4' />
+      <p className='text-muted-foreground mb-3 text-sm font-medium'>
+        {t('Telegram')}
+      </p>
+      <div className='grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'>
+        <TelegramHandleSection
+          currentHandle={profile.telegram_username}
+          onUpdate={onUpdate}
+        />
+        <TelegramLinkCodeSection onSuccess={onUpdate} />
       </div>
 
       {/* Custom OAuth Bindings */}

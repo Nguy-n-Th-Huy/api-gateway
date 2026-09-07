@@ -41,6 +41,7 @@ export interface RegisterPayload {
   verification_code?: string
   aff_code?: string
   turnstile?: string
+  telegram_username?: string
 }
 
 export interface PasswordResetPayload {
@@ -111,6 +112,7 @@ export interface SystemStatus {
     linuxdo_client_id?: string
     telegram_oauth?: boolean
     telegram_bot_name?: string
+    telegram_handle_required?: boolean
     passkey_login?: boolean
     wechat_login?: boolean
     wechat_qrcode?: string
@@ -159,6 +161,7 @@ export interface SystemStatus {
   linuxdo_client_id?: string
   telegram_oauth?: boolean
   telegram_bot_name?: string
+  telegram_handle_required?: boolean
   passkey_login?: boolean
   wechat_login?: boolean
   wechat_qrcode?: string
