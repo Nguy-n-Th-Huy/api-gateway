@@ -77,20 +77,26 @@ func resolveUserSortOptions(sortOptions []UserSortOptions) UserSortOptions {
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
-	Id               int                        `json:"id"`
-	Username         string                     `json:"username" gorm:"unique;index" validate:"max=20"`
-	Password         string                     `json:"password" gorm:"not null;" validate:"min=8,max=20"`
-	OriginalPassword string                     `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
-	DisplayName      string                     `json:"display_name" gorm:"index" validate:"max=20"`
-	Role             int                        `json:"role" gorm:"type:int;default:1"`   // admin, common
-	Status           int                        `json:"status" gorm:"type:int;default:1"` // enabled, disabled
-	Email            string                     `json:"email" gorm:"index" validate:"max=50"`
-	GitHubId         string                     `json:"github_id" gorm:"column:github_id;index"`
-	GoogleId         string                     `json:"google_id" gorm:"column:google_id;index"`
-	DiscordId        string                     `json:"discord_id" gorm:"column:discord_id;index"`
-	OidcId           string                     `json:"oidc_id" gorm:"column:oidc_id;index"`
-	WeChatId         string                     `json:"wechat_id" gorm:"column:wechat_id;index"`
-	TelegramId       string                     `json:"telegram_id" gorm:"column:telegram_id;index"`
+	Id               int    `json:"id"`
+	Username         string `json:"username" gorm:"unique;index" validate:"max=20"`
+	Password         string `json:"password" gorm:"not null;" validate:"min=8,max=20"`
+	OriginalPassword string `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
+	DisplayName      string `json:"display_name" gorm:"index" validate:"max=20"`
+	Role             int    `json:"role" gorm:"type:int;default:1"`   // admin, common
+	Status           int    `json:"status" gorm:"type:int;default:1"` // enabled, disabled
+	Email            string `json:"email" gorm:"index" validate:"max=50"`
+	GitHubId         string `json:"github_id" gorm:"column:github_id;index"`
+	GoogleId         string `json:"google_id" gorm:"column:google_id;index"`
+	DiscordId        string `json:"discord_id" gorm:"column:discord_id;index"`
+	OidcId           string `json:"oidc_id" gorm:"column:oidc_id;index"`
+	WeChatId         string `json:"wechat_id" gorm:"column:wechat_id;index"`
+	TelegramId       string `json:"telegram_id" gorm:"column:telegram_id;index"`
+	// TelegramUsername is a display-only handle: self-declared at
+	// registration or self-service update until a Telegram link completes,
+	// then overwritten with the verified handle Telegram reports (or cleared
+	// if Telegram reports none). It is never unique and never usable as a
+	// lookup key — see specs/telegram/account-link/spec.md.
+	TelegramUsername string                     `json:"telegram_username" gorm:"column:telegram_username;type:varchar(32)"`
 	VerificationCode string                     `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
 	AccessToken      *string                    `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
 	Quota            int                        `json:"quota" gorm:"type:int;default:0"`
@@ -154,6 +160,19 @@ func UpdateUserAccessToken(id int, token string) error {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+// ClearUserTelegramHandle unsets the self-declared Telegram handle. It writes
+// the column directly with a single-column Update rather than going through
+// Update/UpdateWithTx's struct-based Updates(newUser), which — like every
+// GORM Updates(struct) call — treats an empty string the same as "field not
+// submitted" and silently leaves the previous value in place. A profile
+// update that explicitly submits an empty handle must actually clear it.
+func ClearUserTelegramHandle(id int) error {
+	if id <= 0 {
+		return errors.New("id 为空！")
+	}
+	return DB.Model(&User{}).Where("id = ?", id).Update("telegram_username", "").Error
 }
 
 func (user *User) GetSetting() dto.UserSetting {

@@ -39,6 +39,22 @@ var (
 	errOriginalPasswordFail = errors.New("original password is incorrect")
 )
 
+// telegramHandleI18nKey maps a Telegram handle validation failure to the
+// message naming which rule failed, so registration and self-service handle
+// changes report identically (specs/telegram/account-link/spec.md).
+func telegramHandleI18nKey(err error) string {
+	switch {
+	case errors.Is(err, model.ErrTelegramHandleTooShort):
+		return i18n.MsgUserTelegramHandleTooShort
+	case errors.Is(err, model.ErrTelegramHandleTooLong):
+		return i18n.MsgUserTelegramHandleTooLong
+	case errors.Is(err, model.ErrTelegramHandleMustStartWithLetter):
+		return i18n.MsgUserTelegramHandleMustStartWithLetter
+	default:
+		return i18n.MsgUserTelegramHandleInvalidChars
+	}
+}
+
 func GetPasswordEncryptionKey(c *gin.Context) {
 	if !common.PasswordLoginEncryptionEnabled {
 		common.ApiSuccess(c, gin.H{"enabled": false})
@@ -258,6 +274,17 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
 		return
 	}
+	normalizedTelegramHandle := model.NormalizeTelegramHandle(user.TelegramUsername)
+	if normalizedTelegramHandle == "" {
+		if setting.TelegramHandleRequired {
+			common.ApiErrorI18n(c, i18n.MsgUserTelegramHandleRequired)
+			return
+		}
+	} else if err := model.ValidateTelegramHandle(normalizedTelegramHandle); err != nil {
+		common.ApiErrorI18n(c, telegramHandleI18nKey(err))
+		return
+	}
+	user.TelegramUsername = normalizedTelegramHandle
 	if common.EmailVerificationEnabled {
 		if user.Email == "" || user.VerificationCode == "" {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailVerificationRequired)
@@ -293,11 +320,12 @@ func Register(c *gin.Context) {
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
 	cleanUser := model.User{
-		Username:    user.Username,
-		Password:    user.Password,
-		DisplayName: user.Username,
-		InviterId:   inviterId,
-		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
+		Username:         user.Username,
+		Password:         user.Password,
+		DisplayName:      user.Username,
+		InviterId:        inviterId,
+		Role:             common.RoleCommonUser, // 明确设置角色为普通用户
+		TelegramUsername: user.TelegramUsername,
 	}
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
@@ -552,6 +580,7 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"oidc_id":           user.OidcId,
 		"wechat_id":         user.WeChatId,
 		"telegram_id":       user.TelegramId,
+		"telegram_username": user.TelegramUsername,
 		"group":             user.Group,
 		"quota":             user.Quota,
 		"used_quota":        user.UsedQuota,
@@ -893,12 +922,34 @@ func UpdateSelf(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidInput)
 		return
 	}
+	normalizedTelegramHandle := model.NormalizeTelegramHandle(user.TelegramUsername)
+	if normalizedTelegramHandle != "" {
+		if err := model.ValidateTelegramHandle(normalizedTelegramHandle); err != nil {
+			common.ApiErrorI18n(c, telegramHandleI18nKey(err))
+			return
+		}
+	}
+	user.TelegramUsername = normalizedTelegramHandle
+
+	// requestData still holds the raw decoded JSON, so presence of the key
+	// distinguishes "the field was not submitted" (leave the stored handle
+	// untouched, the pre-existing behavior below) from "the field was
+	// submitted empty" (the user asked to clear it). Collapsing those two
+	// into one would either clear the handle on unrelated profile edits or,
+	// as below, silently drop an explicit clear: cleanUser.TelegramUsername
+	// below feeds model.User.Update's GORM Updates(struct) call, which — like
+	// every Updates(struct) call — skips a zero-valued field, so an empty
+	// string here would otherwise leave the previously stored handle in
+	// place while still reporting success.
+	_, telegramUsernameSubmitted := requestData["telegram_username"]
+	clearTelegramHandle := telegramUsernameSubmitted && normalizedTelegramHandle == ""
 
 	cleanUser := model.User{
-		Id:          c.GetInt("id"),
-		Username:    user.Username,
-		Password:    user.Password,
-		DisplayName: user.DisplayName,
+		Id:               c.GetInt("id"),
+		Username:         user.Username,
+		Password:         user.Password,
+		DisplayName:      user.DisplayName,
+		TelegramUsername: user.TelegramUsername,
 	}
 	if user.Password == "$I_LOVE_U" {
 		user.Password = "" // rollback to what it should be
@@ -929,6 +980,12 @@ func UpdateSelf(c *gin.Context) {
 			common.ApiError(c, err)
 			return
 		}
+		if clearTelegramHandle {
+			if err := model.ClearUserTelegramHandle(cleanUser.Id); err != nil {
+				common.ApiError(c, err)
+				return
+			}
+		}
 		if err := model.PublishUserAuthCache(cleanUser.Id); err != nil {
 			common.ApiError(c, err)
 			return
@@ -953,6 +1010,12 @@ func UpdateSelf(c *gin.Context) {
 	if err := cleanUser.Update(false); err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	if clearTelegramHandle {
+		if err := model.ClearUserTelegramHandle(cleanUser.Id); err != nil {
+			common.ApiError(c, err)
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})

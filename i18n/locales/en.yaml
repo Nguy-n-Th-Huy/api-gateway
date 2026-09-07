@@ -109,6 +109,11 @@ user.telegram_id_empty: "Telegram ID is empty!"
 user.telegram_not_bound: "This Telegram account is not bound"
 user.linux_do_id_empty: "Linux DO ID is empty!"
 user.quota_change_zero: "Quota change amount cannot be zero"
+user.telegram_handle_required: "A Telegram handle is required"
+user.telegram_handle_too_short: "Telegram handle must be at least 5 characters"
+user.telegram_handle_too_long: "Telegram handle must be at most 32 characters"
+user.telegram_handle_invalid_chars: "Telegram handle may only contain letters, digits, and underscores"
+user.telegram_handle_must_start_with_letter: "Telegram handle must start with a letter"
 
 # Quota messages
 quota.negative: "Quota cannot be negative!"
@@ -142,6 +147,16 @@ payment.webhook_not_configured: "Webhook is not configured"
 payment.price_id_not_configured: "StripePriceId is not configured for this plan"
 payment.creem_not_configured: "CreemProductId is not configured for this plan"
 payment.compliance_required: "Payment, redemption, subscription, and invitation reward features are disabled. The administrator must confirm compliance terms before enabling them."
+
+# Telegram link messages
+telegram_link.code_required: "A link code is required"
+telegram_link.code_invalid: "This link code is invalid, expired, or has already been used"
+telegram_link.already_bound: "This Telegram account is already linked to another account"
+telegram_link.account_already_bound: "Your account is already linked to a Telegram account"
+telegram_link.account_unusable: "Your account cannot be linked right now"
+telegram_link.session_invalid: "Your session is no longer valid, please sign in again"
+telegram_link.internal_error: "Failed to link your Telegram account, please try again later"
+telegram_link.success: "Telegram account linked successfully"
 
 # Topup messages
 topup.not_provided: "Payment order number not provided"

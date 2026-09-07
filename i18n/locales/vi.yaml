@@ -109,6 +109,11 @@ user.telegram_id_empty: "Telegram ID trống!"
 user.telegram_not_bound: "Tài khoản Telegram này chưa được liên kết"
 user.linux_do_id_empty: "Linux DO ID trống!"
 user.quota_change_zero: "Số lượng thay đổi hạn mức không được bằng 0"
+user.telegram_handle_required: "Cần có tên người dùng Telegram"
+user.telegram_handle_too_short: "Tên người dùng Telegram phải có ít nhất 5 ký tự"
+user.telegram_handle_too_long: "Tên người dùng Telegram tối đa 32 ký tự"
+user.telegram_handle_invalid_chars: "Tên người dùng Telegram chỉ được chứa chữ cái, chữ số và dấu gạch dưới"
+user.telegram_handle_must_start_with_letter: "Tên người dùng Telegram phải bắt đầu bằng một chữ cái"
 
 # Quota messages
 quota.negative: "Hạn mức không được âm!"
@@ -142,6 +147,16 @@ payment.webhook_not_configured: "Webhook chưa được cấu hình"
 payment.price_id_not_configured: "StripePriceId chưa được cấu hình cho gói này"
 payment.creem_not_configured: "CreemProductId chưa được cấu hình cho gói này"
 payment.compliance_required: "Các tính năng thanh toán, đổi thưởng, đăng ký gói và thưởng mời đang bị tắt. Quản trị viên phải xác nhận điều khoản tuân thủ trước khi bật các tính năng này."
+
+# Telegram link messages
+telegram_link.code_required: "Cần có mã liên kết"
+telegram_link.code_invalid: "Mã liên kết này không hợp lệ, đã hết hạn hoặc đã được sử dụng"
+telegram_link.already_bound: "Tài khoản Telegram này đã được liên kết với một tài khoản khác"
+telegram_link.account_already_bound: "Tài khoản của bạn đã được liên kết với một tài khoản Telegram"
+telegram_link.account_unusable: "Không thể liên kết tài khoản của bạn lúc này"
+telegram_link.session_invalid: "Phiên đăng nhập của bạn không còn hợp lệ, vui lòng đăng nhập lại"
+telegram_link.internal_error: "Liên kết tài khoản Telegram thất bại, vui lòng thử lại sau"
+telegram_link.success: "Liên kết tài khoản Telegram thành công"
 
 # Topup messages
 topup.not_provided: "Chưa cung cấp mã đơn hàng thanh toán"

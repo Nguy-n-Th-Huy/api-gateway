@@ -197,6 +197,68 @@ func TestUpdateUserAccessTokenRejectsSoftDeletedUser(t *testing.T) {
 	assert.Equal(t, "old-token", got.GetAccessToken())
 }
 
+func TestClearUserTelegramHandleOnlyClearsTheHandle(t *testing.T) {
+	setupUserUpdateTestState(t)
+
+	user := User{
+		Id:               4,
+		Username:         "telegram-handle-user",
+		Password:         "password",
+		DisplayName:      "unchanged",
+		Status:           common.UserStatusEnabled,
+		Quota:            1000,
+		TelegramUsername: "existing_handle",
+	}
+	require.NoError(t, DB.Create(&user).Error)
+
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", user.Id).Updates(map[string]interface{}{
+		"quota": gorm.Expr("quota - ?", 100),
+	}).Error)
+
+	require.NoError(t, ClearUserTelegramHandle(user.Id))
+
+	var got User
+	require.NoError(t, DB.First(&got, user.Id).Error)
+	assert.Empty(t, got.TelegramUsername)
+	assert.Equal(t, "unchanged", got.DisplayName)
+	assert.Equal(t, 900, got.Quota, "clearing the handle must not disturb a concurrent quota change")
+}
+
+func TestClearUserTelegramHandleRejectsInvalidId(t *testing.T) {
+	setupUserUpdateTestState(t)
+
+	assert.Error(t, ClearUserTelegramHandle(0))
+	assert.Error(t, ClearUserTelegramHandle(-1))
+}
+
+// TestUserUpdateStructIgnoresAnEmptyTelegramUsername documents the GORM
+// behavior ClearUserTelegramHandle exists to work around: Update's
+// struct-based Updates(newUser) call treats an empty string the same as
+// "field not submitted" and silently keeps the previous value. Callers that
+// need to actually clear the handle must use ClearUserTelegramHandle
+// instead of routing an empty value through Update/UpdateWithTx.
+func TestUserUpdateStructIgnoresAnEmptyTelegramUsername(t *testing.T) {
+	setupUserUpdateTestState(t)
+
+	user := User{
+		Id:               5,
+		Username:         "telegram-handle-noop-user",
+		Password:         "password",
+		Status:           common.UserStatusEnabled,
+		TelegramUsername: "existing_handle",
+	}
+	require.NoError(t, DB.Create(&user).Error)
+
+	stale, err := GetUserById(user.Id, true)
+	require.NoError(t, err)
+	stale.TelegramUsername = ""
+	require.NoError(t, stale.Update(false))
+
+	var got User
+	require.NoError(t, DB.First(&got, user.Id).Error)
+	assert.Equal(t, "existing_handle", got.TelegramUsername)
+}
+
 func TestUpdateUserSettingOnlyUpdatesSetting(t *testing.T) {
 	setupUserUpdateTestState(t)
 

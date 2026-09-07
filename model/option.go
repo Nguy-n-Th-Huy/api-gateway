@@ -100,6 +100,11 @@ func InitOptionMap() {
 	common.OptionMap["SePayWebhookApiKey"] = setting.SePayWebhookApiKey
 	common.OptionMap["SePayMinTopUp"] = strconv.Itoa(setting.SePayMinTopUp)
 	common.OptionMap["SePayOrderExpiryMinutes"] = strconv.Itoa(setting.SePayOrderExpiryMinutes)
+	common.OptionMap["TelegramBotIntegrationEnabled"] = strconv.FormatBool(setting.TelegramBotIntegrationEnabled)
+	common.OptionMap["TelegramBotServiceKey"] = setting.TelegramBotServiceKey
+	common.OptionMap["TelegramBotCallbackURL"] = setting.TelegramBotCallbackURL
+	common.OptionMap["TelegramBotCallbackSecret"] = setting.TelegramBotCallbackSecret
+	common.OptionMap["TelegramHandleRequired"] = strconv.FormatBool(setting.TelegramHandleRequired)
 	common.OptionMap["TopupGroupRatio"] = common.TopupGroupRatio2JSONString()
 	common.OptionMap["Chats"] = setting.Chats2JsonString()
 	common.OptionMap["AutoGroups"] = setting.AutoGroups2JsonString()
@@ -213,14 +218,23 @@ func validateOptionValue(key string, value string) error {
 	return nil
 }
 
+// writeOnlySecretOptionKeys are settings whose empty submitted value must
+// leave the stored value unchanged rather than clearing it, so an
+// administrator can save an unrelated field on the same form without
+// retyping a secret that already works.
+var writeOnlySecretOptionKeys = map[string]bool{
+	"SePayWebhookApiKey":        true,
+	"TelegramBotServiceKey":     true,
+	"TelegramBotCallbackSecret": true,
+}
+
 func UpdateOption(key string, value string) error {
 	if err := validateOptionValue(key, value); err != nil {
 		return err
 	}
-	// Saving an empty SePay webhook API key must leave the stored key
-	// unchanged rather than clearing it, so the webhook keeps working when an
-	// administrator edits another SePay field without retyping the key.
-	if key == "SePayWebhookApiKey" && value == "" {
+	// Saving an empty write-only secret must leave the stored value
+	// unchanged rather than clearing it.
+	if writeOnlySecretOptionKeys[key] && value == "" {
 		return nil
 	}
 	// Save to database first
@@ -254,9 +268,9 @@ func UpdateOptionsBulk(values map[string]string) error {
 	}
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		for k, v := range values {
-			// Match UpdateOption: an empty SePay webhook API key must leave the
-			// stored key unchanged rather than clearing it.
-			if k == "SePayWebhookApiKey" && v == "" {
+			// Match UpdateOption: an empty write-only secret must leave the
+			// stored value unchanged rather than clearing it.
+			if writeOnlySecretOptionKeys[k] && v == "" {
 				continue
 			}
 			option := Option{Key: k}
@@ -274,7 +288,7 @@ func UpdateOptionsBulk(values map[string]string) error {
 		return err
 	}
 	for k, v := range values {
-		if k == "SePayWebhookApiKey" && v == "" {
+		if writeOnlySecretOptionKeys[k] && v == "" {
 			continue
 		}
 		if err := updateOptionMap(k, v); err != nil {
@@ -466,6 +480,16 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.SePayMinTopUp, _ = strconv.Atoi(value)
 	case "SePayOrderExpiryMinutes":
 		setting.SePayOrderExpiryMinutes, _ = strconv.Atoi(value)
+	case "TelegramBotIntegrationEnabled":
+		setting.TelegramBotIntegrationEnabled = value == "true"
+	case "TelegramBotServiceKey":
+		setting.TelegramBotServiceKey = value
+	case "TelegramBotCallbackURL":
+		setting.TelegramBotCallbackURL = value
+	case "TelegramBotCallbackSecret":
+		setting.TelegramBotCallbackSecret = value
+	case "TelegramHandleRequired":
+		setting.TelegramHandleRequired = value == "true"
 	case "TopupGroupRatio":
 		err = common.UpdateTopupGroupRatioByJSONString(value)
 	case "GitHubClientId":

@@ -237,6 +237,16 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "TelegramBotIntegrationEnabled":
+		if option.Value == "true" {
+			if missing := setting.TelegramBotMissingFields(); len(missing) > 0 {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": fmt.Sprintf("无法启用 Telegram 机器人集成，请先填入：%s", strings.Join(missing, "、")),
+				})
+				return
+			}
+		}
 	case "theme.frontend":
 		if option.Value != "default" {
 			c.JSON(http.StatusOK, gin.H{

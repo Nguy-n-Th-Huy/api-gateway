@@ -29,3 +29,12 @@ var ErrRedeemFailed = errors.New("redeem.failed")
 // 2FA errors
 var ErrTwoFANotEnabled = errors.New("2fa not enabled")
 var ErrTwoFAAlreadyEnabled = errors.New("2fa already enabled")
+
+// Telegram handle validation errors. A handle failing any rule is rejected
+// with a distinct error so the caller can report which rule failed.
+var (
+	ErrTelegramHandleTooShort            = errors.New("telegram handle too short")
+	ErrTelegramHandleTooLong             = errors.New("telegram handle too long")
+	ErrTelegramHandleInvalidChars        = errors.New("telegram handle contains characters other than letters, digits, and underscores")
+	ErrTelegramHandleMustStartWithLetter = errors.New("telegram handle must start with a letter")
+)
