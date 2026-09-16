@@ -30,6 +30,15 @@ For commercial licensing, please contact support@quantumnous.com
 export const KEY_CHECK_ENDPOINT = '/api/token/check'
 
 /**
+ * `POST /api/token/logs` — body `{ key }`, paged through the platform's own
+ * `p` / `page_size` query parameters. See specs/public-key-check/spec.md.
+ */
+export const TOKEN_LOGS_ENDPOINT = '/api/token/logs'
+
+/** Entries requested per page by the usage-log section. */
+export const USAGE_LOG_PAGE_SIZE = 10
+
+/**
  * Public `GET` endpoint that renders the setup script as plain text. See
  * specs/public-setup-script/spec.md and design.md's "Decisions" table.
  */

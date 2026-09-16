@@ -21,8 +21,13 @@ import { t } from 'i18next'
 
 import { api } from '@/lib/api'
 
-import { KEY_CHECK_ENDPOINT } from './constants'
-import type { KeyCheckReport, KeyCheckResponse } from './types'
+import { KEY_CHECK_ENDPOINT, TOKEN_LOGS_ENDPOINT, USAGE_LOG_PAGE_SIZE } from './constants'
+import type {
+  KeyCheckReport,
+  KeyCheckResponse,
+  KeyUsageLogsPage,
+  KeyUsageLogsResponse,
+} from './types'
 
 /**
  * Thrown when the key-check request completes but the backend rejects the
@@ -66,5 +71,45 @@ export async function checkToken(key: string): Promise<KeyCheckReport> {
     }
 
     throw new KeyCheckRequestError(t('Failed to check key'))
+  }
+}
+
+/**
+ * Calls `POST /api/token/logs` with the key in the request body (paging
+ * travels in the query string, where nothing secret is carried). Resolves
+ * with the requested page of the key's usage log; rejects with
+ * `KeyCheckRequestError` otherwise, on the same terms as `checkToken`.
+ */
+export async function fetchTokenLogs(
+  key: string,
+  page: number
+): Promise<KeyUsageLogsPage> {
+  try {
+    const res = await api.post<KeyUsageLogsResponse>(
+      TOKEN_LOGS_ENDPOINT,
+      { key },
+      {
+        params: { p: page, page_size: USAGE_LOG_PAGE_SIZE },
+        skipBusinessError: true,
+        skipErrorHandler: true,
+      }
+    )
+
+    if (!res.data.success || !res.data.data) {
+      throw new KeyCheckRequestError(
+        res.data.message || t('Failed to load the usage log')
+      )
+    }
+
+    return res.data.data
+  } catch (error) {
+    if (error instanceof KeyCheckRequestError) throw error
+
+    if (error instanceof AxiosError) {
+      const message = error.response?.data?.message as string | undefined
+      throw new KeyCheckRequestError(message || t('Failed to load the usage log'))
+    }
+
+    throw new KeyCheckRequestError(t('Failed to load the usage log'))
   }
 }

@@ -38,22 +38,3 @@ func GetUserUsageSummary(userId int, startTimestamp int64, endTimestamp int64) (
 	}
 	return summary, nil
 }
-
-// GetLogsByTokenIdPaginated is the paginated counterpart of GetLogByTokenId,
-// used by the Telegram bot integration's key-scoped usage log endpoint
-// (specs/telegram/bot-api/spec.md, "Key-scoped usage log").
-func GetLogsByTokenIdPaginated(tokenId int, startIdx int, num int) (logs []*Log, total int64, err error) {
-	if err = LOG_DB.Model(&Log{}).Where("token_id = ?", tokenId).Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	order := "id desc"
-	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
-		order = clickHouseLogOrder("")
-	}
-	if err = LOG_DB.Model(&Log{}).Where("token_id = ?", tokenId).Order(order).
-		Limit(num).Offset(startIdx).Find(&logs).Error; err != nil {
-		return nil, 0, err
-	}
-	formatUserLogs(logs, startIdx)
-	return logs, total, nil
-}

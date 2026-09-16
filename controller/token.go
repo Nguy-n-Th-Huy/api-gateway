@@ -371,6 +371,47 @@ func CheckTokenUsage(c *gin.Context) {
 	common.ApiSuccess(c, report)
 }
 
+// CheckTokenLogs is the public, unauthenticated POST /api/token/logs handler.
+// It returns the log entries recorded against the submitted key, newest
+// first, paged through the platform's page query, and carries no account
+// identity, client IP, or channel information (see
+// specs/public-key-check/spec.md, "Key usage log entries exclude account
+// identity and infrastructure fields").
+func CheckTokenLogs(c *gin.Context) {
+	var req checkTokenRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		respondTokenCheckKeyRequired(c)
+		return
+	}
+	key := normalizeTokenKey(req.Key)
+	if key == "" {
+		respondTokenCheckKeyRequired(c)
+		return
+	}
+
+	token, err := model.GetTokenByKey(key, false)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			common.ApiErrorI18n(c, i18n.MsgTokenInvalid)
+			return
+		}
+		common.SysError("failed to get token for public log lookup: " + err.Error())
+		respondTokenCheckServerError(c)
+		return
+	}
+
+	pageInfo := common.GetPageQuery(c)
+	logs, total, err := model.GetLogsByTokenIdPaginated(token.Id, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if err != nil {
+		common.SysError("failed to query logs for public check: " + err.Error())
+		respondTokenCheckServerError(c)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(service.BuildPublicKeyLogEntries(logs))
+	common.ApiSuccess(c, pageInfo)
+}
+
 func AddToken(c *gin.Context) {
 	request := tokenRequest{}
 	err := c.ShouldBindJSON(&request)

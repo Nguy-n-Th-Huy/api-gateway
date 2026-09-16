@@ -259,13 +259,16 @@ func SetApiRouter(router *gin.Engine) {
 			}
 		}
 
-		// Public, unauthenticated key check route for the /key page.
-		// Deliberately outside tokenRoute (middleware.UserAuth()), since this
-		// must work for a visitor with no account or session.
+		// Public, unauthenticated routes for the /key page: the key's report
+		// (POST /check) and its usage log (POST /logs). Deliberately outside
+		// tokenRoute (middleware.UserAuth()), since both must work for a
+		// visitor with no account or session. Keys travel in the JSON body
+		// only, never in the URL or query string.
 		publicTokenRoute := apiRouter.Group("/token")
 		publicTokenRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
 		{
 			publicTokenRoute.POST("/check", anonymousRequestBodyLimit, controller.CheckTokenUsage)
+			publicTokenRoute.POST("/logs", anonymousRequestBodyLimit, controller.CheckTokenLogs)
 		}
 
 		// Public, unauthenticated setup-script route for the /key page's

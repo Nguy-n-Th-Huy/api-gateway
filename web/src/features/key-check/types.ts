@@ -55,3 +55,41 @@ export interface KeyCheckResponse {
   message?: string
   data?: KeyCheckReport
 }
+
+/**
+ * One entry of the key's usage log, as returned by `POST /api/token/logs`.
+ * Mirrors `service.PublicKeyLogEntry` — an explicit whitelist that carries no
+ * account identity, client IP, or channel information. See
+ * specs/public-key-check/spec.md — "Key usage log entries exclude account
+ * identity and infrastructure fields".
+ */
+export interface KeyUsageLogEntry {
+  /** Raw timestamp (seconds). */
+  created_at: number
+  /** `common.LogType*` on the backend; labelled with the console's own
+   * log-type vocabulary (`@/features/usage-logs`). */
+  type: number
+  model_name: string
+  /** Quota units consumed by the request. */
+  quota: number
+  prompt_tokens: number
+  completion_tokens: number
+  /** Duration in seconds. */
+  use_time: number
+  is_stream: boolean
+  group: string
+  request_id: string
+}
+
+export interface KeyUsageLogsPage {
+  page: number
+  page_size: number
+  total: number
+  items: KeyUsageLogEntry[]
+}
+
+export interface KeyUsageLogsResponse {
+  success: boolean
+  message?: string
+  data?: KeyUsageLogsPage
+}

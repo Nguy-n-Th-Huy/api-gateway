@@ -26,12 +26,13 @@ import { KeyCheckForm } from './components/key-check-form'
 import { ModelStatusSection } from './components/model-status-section'
 import { ResultPanel } from './components/result-panel'
 import { SetupSection } from './components/setup-section'
+import { UsageLogSection } from './components/usage-log-section'
 import { useKeyCheck } from './hooks/use-key-check'
 
 /**
  * Public, unauthenticated `/key` page: look up an API key's own usage and
- * configuration, see recent model health, and get a one-line setup command.
- * See openspec/changes/add-public-key-check-page.
+ * configuration, see the requests it has made, check recent model health, and
+ * get a one-line setup command. See openspec/specs/public-key-check.
  */
 export function KeyCheck() {
   const { t } = useTranslation()
@@ -82,6 +83,8 @@ export function KeyCheck() {
             <ResultPanel report={keyCheck.report} />
           )}
         </div>
+
+        <UsageLogSection checkedKey={keyCheck.checkedKey} />
 
         <ModelStatusSection
           availableModels={keyCheck.report?.available_models ?? null}

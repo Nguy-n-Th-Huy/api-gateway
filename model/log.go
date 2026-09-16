@@ -147,6 +147,25 @@ func GetLogByTokenId(tokenId int) (logs []*Log, err error) {
 	return logs, err
 }
 
+// GetLogsByTokenIdPaginated is the paginated counterpart of GetLogByTokenId,
+// used by every surface that reports one key's usage log: the public key-check
+// endpoint and the Telegram bot integration's key-scoped log endpoint.
+func GetLogsByTokenIdPaginated(tokenId int, startIdx int, num int) (logs []*Log, total int64, err error) {
+	if err = LOG_DB.Model(&Log{}).Where("token_id = ?", tokenId).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	order := "id desc"
+	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
+		order = clickHouseLogOrder("")
+	}
+	if err = LOG_DB.Model(&Log{}).Where("token_id = ?", tokenId).Order(order).
+		Limit(num).Offset(startIdx).Find(&logs).Error; err != nil {
+		return nil, 0, err
+	}
+	formatUserLogs(logs, startIdx)
+	return logs, total, nil
+}
+
 func RecordLog(userId int, logType int, content string) {
 	if logType == LogTypeConsume && !common.LogConsumeEnabled {
 		return
