@@ -463,8 +463,18 @@ func TokenAuth() func(c *gin.Context) {
 		if tokenGroup != "" {
 			// check common.UserUsableGroups[userGroup]
 			if _, ok := service.GetUserUsableGroups(userGroup, userCache.Role)[tokenGroup]; !ok {
-				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
-				return
+				// A multi-group key is stored as group == "auto" plus an ordered
+				// snapshot. The snapshot names only groups the owner may select
+				// (validated at write time by controller/token.go
+				// setTokenAutoGroups and re-filtered at request time by
+				// service.FilterUserTokenAutoGroups), so it authorises the key's
+				// own groups; the "auto" placeholder itself needs no
+				// authorization in that case. A missing, empty or unparsable
+				// snapshot keeps the refusal, so this cannot become a bypass.
+				if tokenGroup != "auto" || !token.HasAutoGroupsSnapshot() {
+					abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
+					return
+				}
 			}
 			// check group in common.GroupRatio
 			if !ratio_setting.ContainsGroupRatio(tokenGroup) {

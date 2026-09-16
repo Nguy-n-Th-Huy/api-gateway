@@ -34,9 +34,10 @@ import {
 } from './auto-group-visuals'
 
 type ApiKeyGroupCellProps = {
-  crossGroupRetry: boolean
   group: string
+  groups: string[]
   ratio?: GroupRatio
+  groupRatios?: Record<string, GroupRatio>
   shouldReduceMotion: boolean
 }
 
@@ -53,6 +54,48 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
       >
         <GroupBadge group={props.group} ratio={ratio} />
       </TruncatedCell>
+    )
+  }
+
+  // A key that names its own groups shows them: the stored order is the order the
+  // relay path walks, so the chips and the tooltip both read it, and each chip
+  // carries its own group's ratio. The Auto ratio badge would be a lie here — the
+  // request is priced by the group that serves it, not by the placeholder.
+  if (props.groups.length > 0) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <BadgeCell
+              data-api-key-group-cell='auto'
+              className='gap-1.5 overflow-visible text-xs'
+            />
+          }
+        >
+          <StatusBadge
+            label={t('Cross-group')}
+            variant='info'
+            copyable={false}
+          />
+          {props.groups.map((group) => {
+            const ratio = props.groupRatios?.[group]
+            return (
+              <GroupBadge
+                key={group}
+                group={group}
+                ratio={typeof ratio === 'number' ? ratio : undefined}
+              />
+            )
+          })}
+        </TooltipTrigger>
+        <TooltipContent>
+          <span className='text-xs'>
+            {t('Tries these groups in order: {{groups}}', {
+              groups: props.groups.join(' → '),
+            })}
+          </span>
+        </TooltipContent>
+      </Tooltip>
     )
   }
 

@@ -50,11 +50,15 @@ import { GroupRatioBadge } from './auto-group-visuals'
 
 type AutoGroupOrderEditorProps = Omit<ComponentProps<'div'>, 'onChange'> & {
   value: string[]
-  mode: 'inherit' | 'custom'
   options: ApiKeyGroupOption[]
-  globalOptions: ApiKeyGroupOption[]
   maxCount: number
-  onChange: (value: { groups: string[]; mode: 'inherit' | 'custom' }) => void
+  onChange: (groups: string[]) => void
+  'data-slot'?: string
+  'data-form-root'?: string
+}
+
+type GlobalAutoOrderPreviewProps = Omit<ComponentProps<'div'>, 'children'> & {
+  globalOptions: ApiKeyGroupOption[]
   'data-slot'?: string
   'data-form-root'?: string
 }
@@ -154,11 +158,15 @@ function AutoGroupOrderItem(props: AutoGroupOrderItemProps) {
   )
 }
 
+/**
+ * The ordered group picker: the groups a key will try, in the order it will try
+ * them. One group is a plain single-group key; several are stored as an ordered
+ * snapshot; an empty selection leaves the key on its owner's group.
+ */
 export function AutoGroupOrderEditor(props: AutoGroupOrderEditorProps) {
   const { t } = useTranslation()
   const maxCount =
     Number.isInteger(props.maxCount) && props.maxCount > 0 ? props.maxCount : 5
-  const isInheriting = props.mode === 'inherit'
   const atLimit = props.value.length >= maxCount
   const candidates = useMemo(
     () =>
@@ -171,17 +179,11 @@ export function AutoGroupOrderEditor(props: AutoGroupOrderEditorProps) {
 
   const handleAdd = (group: string) => {
     if (atLimit || props.value.includes(group)) return
-    props.onChange({
-      groups: [...props.value, group],
-      mode: 'custom',
-    })
+    props.onChange([...props.value, group])
   }
 
   const handleRemove = (group: string) => {
-    props.onChange({
-      groups: props.value.filter((item) => item !== group),
-      mode: 'custom',
-    })
+    props.onChange(props.value.filter((item) => item !== group))
   }
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
@@ -189,7 +191,7 @@ export function AutoGroupOrderEditor(props: AutoGroupOrderEditorProps) {
     if (targetIndex < 0 || targetIndex >= props.value.length) return
     const next = [...props.value]
     ;[next[index], next[targetIndex]] = [next[targetIndex], next[index]]
-    props.onChange({ groups: next, mode: 'custom' })
+    props.onChange(next)
   }
 
   return (
@@ -199,33 +201,18 @@ export function AutoGroupOrderEditor(props: AutoGroupOrderEditorProps) {
       data-form-root={props['data-form-root']}
       role='group'
       tabIndex={-1}
-      aria-label={props['aria-label'] || t('Auto group order')}
+      aria-label={props['aria-label'] || t('Groups')}
       aria-describedby={props['aria-describedby']}
       aria-invalid={props['aria-invalid']}
       className={cn('flex flex-col gap-3', props.className)}
     >
       <div className='flex items-center justify-between gap-3'>
         <p className='text-muted-foreground text-xs' aria-live='polite'>
-          {isInheriting
-            ? t('Using the complete global Auto order ({{count}} groups)', {
-                count: props.globalOptions.length,
-              })
-            : t('{{count}} / {{max}} groups selected', {
-                count: props.value.length,
-                max: maxCount,
-              })}
+          {t('{{count}} / {{max}} groups selected', {
+            count: props.value.length,
+            max: maxCount,
+          })}
         </p>
-        <Button
-          type='button'
-          variant='outline'
-          size='sm'
-          disabled={isInheriting}
-          onClick={() => {
-            props.onChange({ groups: [], mode: 'inherit' })
-          }}
-        >
-          {t('Restore global Auto')}
-        </Button>
       </div>
 
       <ApiKeyGroupCombobox
@@ -235,12 +222,72 @@ export function AutoGroupOrderEditor(props: AutoGroupOrderEditorProps) {
         placeholder={
           atLimit
             ? t('Maximum {{max}} groups selected', { max: maxCount })
-            : t('Add Auto group')
+            : t('Add group')
         }
         disabled={atLimit || candidates.length === 0}
       />
 
-      {isInheriting && props.globalOptions.length === 0 && (
+      {props.value.length === 0 && (
+        <Empty className='min-h-24 border'>
+          <EmptyHeader>
+            <EmptyTitle>{t('No groups selected')}</EmptyTitle>
+            <EmptyDescription>
+              {t("Saving with no groups leaves the key on its owner's group.")}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
+
+      {props.value.length > 0 && (
+        <Reorder.Group
+          axis='y'
+          values={props.value}
+          onReorder={props.onChange}
+          className='flex flex-col gap-2'
+        >
+          {props.value.map((group, index) => (
+            <AutoGroupOrderItem
+              key={group}
+              group={group}
+              index={index}
+              count={props.value.length}
+              onMove={handleMove}
+              onRemove={handleRemove}
+            />
+          ))}
+        </Reorder.Group>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Read-only view of the administrator's Auto order, shown while a key follows it.
+ * The order is the key's full candidate list, so it is displayed in full rather
+ * than capped by the per-key group limit.
+ */
+export function GlobalAutoOrderPreview(props: GlobalAutoOrderPreviewProps) {
+  const { t } = useTranslation()
+
+  return (
+    <div
+      id={props.id}
+      data-slot={props['data-slot']}
+      data-form-root={props['data-form-root']}
+      role='group'
+      tabIndex={-1}
+      aria-label={props['aria-label'] || t('Groups')}
+      aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      className={cn('flex flex-col gap-3', props.className)}
+    >
+      <p className='text-muted-foreground text-xs' aria-live='polite'>
+        {t('Using the complete global Auto order ({{count}} groups)', {
+          count: props.globalOptions.length,
+        })}
+      </p>
+
+      {props.globalOptions.length === 0 && (
         <Empty className='min-h-28 border'>
           <EmptyHeader>
             <EmptyTitle>{t('Inherit global Auto order')}</EmptyTitle>
@@ -251,7 +298,7 @@ export function AutoGroupOrderEditor(props: AutoGroupOrderEditorProps) {
         </Empty>
       )}
 
-      {isInheriting && props.globalOptions.length > 0 && (
+      {props.globalOptions.length > 0 && (
         <ol
           data-slot='global-auto-order'
           aria-label={t('Inherit global Auto order')}
@@ -299,39 +346,6 @@ export function AutoGroupOrderEditor(props: AutoGroupOrderEditorProps) {
             </li>
           ))}
         </ol>
-      )}
-
-      {!isInheriting && props.value.length === 0 && (
-        <Empty className='min-h-24 border'>
-          <EmptyHeader>
-            <EmptyTitle>{t('Auto group order')}</EmptyTitle>
-            <EmptyDescription>
-              {t(
-                'No valid custom Auto groups remain. Add a group or restore global Auto.'
-              )}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
-
-      {!isInheriting && props.value.length > 0 && (
-        <Reorder.Group
-          axis='y'
-          values={props.value}
-          onReorder={(groups) => props.onChange({ groups, mode: 'custom' })}
-          className='flex flex-col gap-2'
-        >
-          {props.value.map((group, index) => (
-            <AutoGroupOrderItem
-              key={group}
-              group={group}
-              index={index}
-              count={props.value.length}
-              onMove={handleMove}
-              onRemove={handleRemove}
-            />
-          ))}
-        </Reorder.Group>
       )}
     </div>
   )

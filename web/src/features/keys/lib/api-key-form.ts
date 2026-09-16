@@ -21,7 +21,6 @@ import { z } from 'zod'
 
 import { parseQuotaFromDollars, quotaUnitsToDollars } from '@/lib/format'
 
-import { DEFAULT_GROUP } from '../constants'
 import type { ApiKey, ApiKeyFormData } from '../types'
 
 // ============================================================================
@@ -29,7 +28,7 @@ import type { ApiKey, ApiKeyFormData } from '../types'
 // ============================================================================
 
 export function getApiKeyFormSchema(t: TFunction, maxAutoGroups = 5) {
-  const autoGroupLimit =
+  const groupLimit =
     Number.isInteger(maxAutoGroups) && maxAutoGroups > 0 ? maxAutoGroups : 5
 
   return z
@@ -40,42 +39,31 @@ export function getApiKeyFormSchema(t: TFunction, maxAutoGroups = 5) {
       unlimited_quota: z.boolean(),
       model_limits: z.array(z.string()),
       allow_ips: z.string().optional(),
-      group: z.string().optional(),
-      auto_groups_mode: z.enum(['inherit', 'custom']),
-      auto_groups: z.array(z.string()),
+      groups: z.array(z.string()),
+      use_global_auto: z.boolean(),
       cross_group_retry: z.boolean().optional(),
       tokenCount: z.number().min(1).optional(),
     })
     .superRefine((data, ctx) => {
-      if (data.group === 'auto') {
-        if (
-          data.auto_groups_mode === 'custom' &&
-          data.auto_groups.length === 0
-        ) {
+      // The global Auto toggle owns the order: its list is empty by
+      // construction, so the list checks only apply to an explicit selection.
+      // An empty selection is legal — the key then follows its owner's group.
+      if (!data.use_global_auto) {
+        if (data.groups.length > groupLimit) {
           ctx.addIssue({
             code: 'custom',
-            path: ['auto_groups'],
-            message: t(
-              'Select at least one Auto group or restore global Auto.'
-            ),
-          })
-        }
-
-        if (data.auto_groups.length > autoGroupLimit) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['auto_groups'],
-            message: t('Select at most {{max}} Auto groups', {
-              max: autoGroupLimit,
+            path: ['groups'],
+            message: t('Select at most {{max}} groups', {
+              max: groupLimit,
             }),
           })
         }
 
-        if (new Set(data.auto_groups).size !== data.auto_groups.length) {
+        if (new Set(data.groups).size !== data.groups.length) {
           ctx.addIssue({
             code: 'custom',
-            path: ['auto_groups'],
-            message: t('Auto groups must not contain duplicates'),
+            path: ['groups'],
+            message: t('Groups must not contain duplicates'),
           })
         }
       }
@@ -110,10 +98,9 @@ export const API_KEY_FORM_DEFAULT_VALUES: ApiKeyFormValues = {
   unlimited_quota: true,
   model_limits: [],
   allow_ips: '',
-  group: DEFAULT_GROUP,
-  auto_groups_mode: 'inherit',
-  auto_groups: [],
-  cross_group_retry: true,
+  groups: [],
+  use_global_auto: false,
+  cross_group_retry: false,
   tokenCount: 1,
 }
 
@@ -122,9 +109,7 @@ export function getApiKeyFormDefaultValues(
 ): ApiKeyFormValues {
   return {
     ...API_KEY_FORM_DEFAULT_VALUES,
-    group: defaultUseAutoGroup ? 'auto' : DEFAULT_GROUP,
-    auto_groups_mode: 'inherit',
-    auto_groups: [],
+    use_global_auto: defaultUseAutoGroup,
     cross_group_retry: defaultUseAutoGroup,
   }
 }
@@ -134,11 +119,52 @@ export function getApiKeyFormDefaultValues(
 // ============================================================================
 
 /**
+ * Map the ordered selection onto the stored key columns.
+ *
+ * One group stays a plain group so a single-group key keeps its today's
+ * behaviour; two or more become an ordered snapshot behind the `auto`
+ * placeholder, which is what the relay path already walks; the global Auto
+ * toggle stores the placeholder alone; and an empty selection clears the group so
+ * the key follows its owner's. The cross-group switch is only meaningful when the
+ * key can span more than one group.
+ */
+function getStoredGroupSelection(data: ApiKeyFormValues): {
+  group: string
+  autoGroups: string[]
+  crossGroupRetry: boolean
+} {
+  if (data.use_global_auto) {
+    return {
+      group: 'auto',
+      autoGroups: [],
+      crossGroupRetry: !!data.cross_group_retry,
+    }
+  }
+
+  if (data.groups.length === 0) {
+    return { group: '', autoGroups: [], crossGroupRetry: false }
+  }
+
+  const [onlyGroup] = data.groups
+  if (data.groups.length === 1) {
+    return { group: onlyGroup ?? '', autoGroups: [], crossGroupRetry: false }
+  }
+
+  return {
+    group: 'auto',
+    autoGroups: [...data.groups],
+    crossGroupRetry: !!data.cross_group_retry,
+  }
+}
+
+/**
  * Transform form data to API payload
  */
 export function transformFormDataToPayload(
   data: ApiKeyFormValues
 ): ApiKeyFormData {
+  const selection = getStoredGroupSelection(data)
+
   return {
     name: data.name,
     remain_quota: data.unlimited_quota
@@ -151,29 +177,43 @@ export function transformFormDataToPayload(
     model_limits_enabled: data.model_limits.length > 0,
     model_limits: data.model_limits.join(','),
     allow_ips: data.allow_ips || '',
-    group: data.group || '',
-    auto_groups:
-      data.group === 'auto' && data.auto_groups_mode === 'custom'
-        ? data.auto_groups
-        : [],
-    cross_group_retry: data.group === 'auto' ? !!data.cross_group_retry : false,
+    group: selection.group,
+    auto_groups: selection.autoGroups,
+    cross_group_retry: selection.crossGroupRetry,
   }
 }
 
 /**
  * Transform API key data to form defaults
+ *
+ * The stored shape is what distinguishes the two `auto` keys: `auto` with a
+ * snapshot is an explicit ordered list, `auto` alone is the global Auto order.
+ * Every group the requester may no longer select is dropped, so the form can
+ * never save a group the key would not be allowed to use.
  */
 export function transformApiKeyToFormDefaults(
   apiKey: ApiKey,
-  availableAutoGroups: string[] = [],
+  availableGroups: string[] = [],
   maxAutoGroups = 5
 ): ApiKeyFormValues {
-  const availableSet = new Set(availableAutoGroups)
-  const storedAutoGroups = apiKey.auto_groups ?? []
-  const autoGroups = storedAutoGroups
-    .filter((group) => availableSet.has(group))
-    .slice(0, Math.max(0, maxAutoGroups))
-  const autoGroupsMode = storedAutoGroups.length > 0 ? 'custom' : 'inherit'
+  const availableSet = new Set(availableGroups)
+  const limit = Math.max(0, maxAutoGroups)
+  const storedSnapshot = apiKey.auto_groups ?? []
+  const storedGroup = apiKey.group ?? ''
+
+  let groups: string[] = []
+  let useGlobalAuto = false
+  if (storedGroup === 'auto') {
+    if (storedSnapshot.length > 0) {
+      groups = storedSnapshot
+        .filter((group) => availableSet.has(group))
+        .slice(0, limit)
+    } else {
+      useGlobalAuto = true
+    }
+  } else if (storedGroup !== '' && availableSet.has(storedGroup)) {
+    groups = [storedGroup]
+  }
 
   return {
     name: apiKey.name,
@@ -189,9 +229,8 @@ export function transformApiKeyToFormDefaults(
       ? apiKey.model_limits.split(',').filter(Boolean)
       : [],
     allow_ips: apiKey.allow_ips || '',
-    group: apiKey.group || DEFAULT_GROUP,
-    auto_groups_mode: autoGroupsMode,
-    auto_groups: autoGroups,
+    groups,
+    use_global_auto: useGlobalAuto,
     cross_group_retry: !!apiKey.cross_group_retry,
     tokenCount: 1,
   }

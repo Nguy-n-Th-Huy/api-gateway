@@ -53,130 +53,220 @@ const baseApiKey: ApiKey = {
   allow_ips: '',
 }
 
-describe('API key Auto group form mapping', () => {
-  test('treats legacy token responses without auto_groups as inheritance', () => {
+describe('API key group form mapping', () => {
+  test('treats legacy token responses without auto_groups as the global Auto order', () => {
     const legacyApiKey: Record<string, unknown> = { ...baseApiKey }
     delete legacyApiKey.auto_groups
 
     expect(apiKeySchema.parse(legacyApiKey).auto_groups).toBe(null)
   })
 
-  test('creates an Auto token that inherits the global order', () => {
-    const defaults = getApiKeyFormDefaultValues(true)
+  test('defaults a create to no groups and no global Auto order', () => {
+    const defaults = getApiKeyFormDefaultValues(false)
 
-    expect(defaults.group).toBe('auto')
-    expect(defaults.auto_groups_mode).toBe('inherit')
-    expect(defaults.auto_groups).toEqual([])
-    expect(transformFormDataToPayload(defaults).auto_groups).toEqual([])
+    expect(defaults.groups).toEqual([])
+    expect(defaults.use_global_auto).toBe(false)
+    expect(defaults.cross_group_retry).toBe(false)
   })
 
-  test('maps omitted, null, and empty snapshots to inheritance on edit', () => {
+  test('defaults a create to the global Auto order when the deployment asks for it', () => {
+    const defaults = getApiKeyFormDefaultValues(true)
+
+    expect(defaults.use_global_auto).toBe(true)
+    expect(defaults.cross_group_retry).toBe(true)
+    expect(defaults.groups).toEqual([])
+
+    const payload = transformFormDataToPayload({ ...defaults, name: 'create' })
+    expect(payload.group).toBe('auto')
+    expect(payload.auto_groups).toEqual([])
+  })
+
+  test('creates a key with no group from an empty selection', () => {
+    const payload = transformFormDataToPayload({
+      ...getApiKeyFormDefaultValues(false),
+      name: 'ungrouped',
+    })
+
+    expect(payload.group).toBe('')
+    expect(payload.auto_groups).toEqual([])
+    expect(payload.cross_group_retry).toBe(false)
+  })
+
+  test('creates a single-group key from one selected group', () => {
+    const payload = transformFormDataToPayload({
+      ...getApiKeyFormDefaultValues(false),
+      name: 'single',
+      groups: ['vip'],
+      cross_group_retry: true,
+    })
+
+    expect(payload.group).toBe('vip')
+    expect(payload.auto_groups).toEqual([])
+    expect(payload.cross_group_retry).toBe(false)
+  })
+
+  test('creates a multi-group key as an ordered snapshot in the selected order', () => {
+    const payload = transformFormDataToPayload({
+      ...getApiKeyFormDefaultValues(false),
+      name: 'multi',
+      groups: ['vip', 'default', 'team'],
+      cross_group_retry: false,
+    })
+
+    expect(payload.group).toBe('auto')
+    expect(payload.auto_groups).toEqual(['vip', 'default', 'team'])
+    expect(payload.cross_group_retry).toBe(false)
+  })
+
+  test('keeps the global Auto order snapshot-free even when the list still holds groups', () => {
+    const payload = transformFormDataToPayload({
+      ...getApiKeyFormDefaultValues(true),
+      name: 'global-auto',
+      groups: ['vip', 'default'],
+    })
+
+    expect(payload.group).toBe('auto')
+    expect(payload.auto_groups).toEqual([])
+  })
+
+  test('maps a stored global Auto order onto the toggle, not onto a list', () => {
     const legacyApiKey: Record<string, unknown> = { ...baseApiKey }
     delete legacyApiKey.auto_groups
-    const inheritedApiKeys = [
+    const globalAutoKeys = [
       apiKeySchema.parse(legacyApiKey),
       baseApiKey,
       { ...baseApiKey, auto_groups: [] },
     ]
 
-    for (const apiKey of inheritedApiKeys) {
+    for (const apiKey of globalAutoKeys) {
       const defaults = transformApiKeyToFormDefaults(
         apiKey,
         ['default', 'vip'],
         2
       )
 
-      expect(defaults.auto_groups_mode).toBe('inherit')
-      expect(defaults.auto_groups).toEqual([])
+      expect(defaults.use_global_auto).toBe(true)
+      expect(defaults.groups).toEqual([])
+      expect(defaults.cross_group_retry).toBe(true)
     }
+  })
+
+  test('maps a stored snapshot onto the explicit list in its stored order', () => {
+    const defaults = transformApiKeyToFormDefaults(
+      { ...baseApiKey, auto_groups: ['vip', 'default'] },
+      ['default', 'vip'],
+      5
+    )
+
+    expect(defaults.use_global_auto).toBe(false)
+    expect(defaults.groups).toEqual(['vip', 'default'])
   })
 
   test('filters a stored snapshot before applying a lowered limit', () => {
     const defaults = transformApiKeyToFormDefaults(
-      {
-        ...baseApiKey,
-        auto_groups: ['revoked', 'vip', 'default'],
-      },
+      { ...baseApiKey, auto_groups: ['revoked', 'vip', 'default'] },
       ['default', 'vip'],
       2
     )
 
-    expect(defaults.auto_groups_mode).toBe('custom')
-    expect(defaults.auto_groups).toEqual(['vip', 'default'])
+    expect(defaults.use_global_auto).toBe(false)
+    expect(defaults.groups).toEqual(['vip', 'default'])
   })
 
-  test('keeps a fully filtered snapshot custom and rejects it until resolved', () => {
+  test('round-trips a stored snapshot inside the limit unchanged', () => {
+    const stored = { ...baseApiKey, auto_groups: ['vip', 'default'] }
+
+    const payload = transformFormDataToPayload(
+      transformApiKeyToFormDefaults(stored, ['default', 'vip'], 5)
+    )
+
+    expect(payload.group).toBe('auto')
+    expect(payload.auto_groups).toEqual(['vip', 'default'])
+    expect(payload.cross_group_retry).toBe(true)
+  })
+
+  test('round-trips a stored single group unchanged', () => {
+    const stored = {
+      ...baseApiKey,
+      group: 'vip',
+      auto_groups: [],
+      cross_group_retry: false,
+    }
+
+    const payload = transformFormDataToPayload(
+      transformApiKeyToFormDefaults(stored, ['vip', 'default'], 5)
+    )
+
+    expect(payload.group).toBe('vip')
+    expect(payload.auto_groups).toEqual([])
+    expect(payload.cross_group_retry).toBe(false)
+  })
+
+  test('drops a stored single group the requester may no longer select', () => {
+    const defaults = transformApiKeyToFormDefaults(
+      { ...baseApiKey, group: 'revoked', auto_groups: [] },
+      ['default', 'vip'],
+      5
+    )
+
+    expect(defaults.groups).toEqual([])
+    expect(defaults.use_global_auto).toBe(false)
+    expect(transformFormDataToPayload(defaults).group).toBe('')
+  })
+
+  test('leaves a fully filtered snapshot as an empty selection instead of global Auto', () => {
     const defaults = transformApiKeyToFormDefaults(
       { ...baseApiKey, auto_groups: ['revoked'] },
       ['default'],
       2
     )
 
-    expect(defaults.auto_groups_mode).toBe('custom')
-    expect(defaults.auto_groups).toEqual([])
+    expect(defaults.use_global_auto).toBe(false)
+    expect(defaults.groups).toEqual([])
 
     const result = getApiKeyFormSchema(t, 2).safeParse(defaults)
-    expect(result.success).toBe(false)
-    if (result.success) return
-    expect(result.error.issues[0]?.path).toEqual(['auto_groups'])
-    expect(result.error.issues[0]?.message).toBe(
-      'Select at least one Auto group or restore global Auto.'
-    )
+    expect(result.success).toBe(true)
+
+    const payload = transformFormDataToPayload(defaults)
+    expect(payload.group).toBe('')
+    expect(payload.auto_groups).toEqual([])
+    expect(payload.cross_group_retry).toBe(false)
   })
 
-  test('submits a valid custom snapshot in its configured order', () => {
-    const custom = {
-      ...getApiKeyFormDefaultValues(true),
-      auto_groups_mode: 'custom' as const,
-      auto_groups: ['vip', 'default'],
-    }
+  test('accepts an empty selection', () => {
+    const result = getApiKeyFormSchema(t, 2).safeParse({
+      ...getApiKeyFormDefaultValues(false),
+      name: 'ungrouped',
+    })
 
-    expect(transformFormDataToPayload(custom).auto_groups).toEqual([
-      'vip',
-      'default',
-    ])
+    expect(result.success).toBe(true)
   })
 
-  test('submits an empty array for inheritance and for non-Auto groups', () => {
-    const inherited = getApiKeyFormDefaultValues(true)
-    expect(transformFormDataToPayload(inherited).auto_groups).toEqual([])
-
-    const nonAuto = {
-      ...inherited,
-      group: 'default',
-      auto_groups_mode: 'custom' as const,
-      auto_groups: ['vip'],
-    }
-    expect(transformFormDataToPayload(nonAuto).auto_groups).toEqual([])
-    expect(transformFormDataToPayload(nonAuto).cross_group_retry).toBe(false)
-  })
-
-  test('rejects snapshots over the configured limit', () => {
+  test('rejects selections over the configured limit', () => {
     const result = getApiKeyFormSchema(t, 1).safeParse({
-      ...getApiKeyFormDefaultValues(true),
+      ...getApiKeyFormDefaultValues(false),
       name: 'limited token',
-      auto_groups_mode: 'custom',
-      auto_groups: ['default', 'vip'],
+      groups: ['default', 'vip'],
     })
 
     expect(result.success).toBe(false)
     if (result.success) return
-    expect(result.error.issues[0]?.path[0]).toBe('auto_groups')
-    expect(result.error.issues[0]?.message).toBe('Select at most 1 Auto groups')
+    expect(result.error.issues[0]?.path[0]).toBe('groups')
+    expect(result.error.issues[0]?.message).toBe('Select at most 1 groups')
   })
 
-  test('rejects duplicate custom groups', () => {
+  test('rejects duplicate groups', () => {
     const result = getApiKeyFormSchema(t).safeParse({
-      ...getApiKeyFormDefaultValues(true),
+      ...getApiKeyFormDefaultValues(false),
       name: 'duplicate token',
-      auto_groups_mode: 'custom',
-      auto_groups: ['vip', 'vip'],
+      groups: ['vip', 'vip'],
     })
 
     expect(result.success).toBe(false)
     if (result.success) return
+    expect(result.error.issues[0]?.path[0]).toBe('groups')
     expect(result.error.issues[0]?.message).toBe(
-      'Auto groups must not contain duplicates'
+      'Groups must not contain duplicates'
     )
   })
 })

@@ -56,6 +56,19 @@ func (token *Token) SetAutoGroups(groups []string) error {
 	return nil
 }
 
+// HasAutoGroupsSnapshot reports whether the token carries a usable ordered group
+// snapshot, i.e. a non-empty parseable JSON array holding at least one group. An
+// empty string, an empty array and a parse error all mean "no snapshot", so a
+// malformed value can never authorise anything. middleware/auth.go TokenAuth
+// uses this as the single definition of "the token names its own groups".
+func (token *Token) HasAutoGroupsSnapshot() bool {
+	groups, err := token.GetAutoGroups()
+	if err != nil {
+		return false
+	}
+	return len(groups) > 0
+}
+
 func (token *Token) Clean() {
 	token.Key = ""
 }

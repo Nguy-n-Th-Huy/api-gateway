@@ -82,12 +82,12 @@ import {
   transformApiKeyToFormDefaults,
 } from '../lib'
 import type { ApiKey } from '../types'
-import {
-  ApiKeyGroupCombobox,
-  type ApiKeyGroupOption,
-} from './api-key-group-combobox'
+import type { ApiKeyGroupOption } from './api-key-group-combobox'
 import { useApiKeys } from './api-keys-provider'
-import { AutoGroupOrderEditor } from './auto-group-order-editor'
+import {
+  AutoGroupOrderEditor,
+  GlobalAutoOrderPreview,
+} from './auto-group-order-editor'
 
 type ApiKeyMutateDrawerProps = {
   open: boolean
@@ -166,16 +166,20 @@ export function ApiKeysMutateDrawer({
     [groupsData]
   )
   const backendHasAuto = groups.some((g) => g.value === 'auto')
-  const availableAutoGroupNames = useMemo(
-    () => groups.filter((group) => group.value !== 'auto').map((g) => g.value),
+  const selectableGroupOptions = useMemo(
+    () => groups.filter((group) => group.value !== 'auto'),
     [groups]
   )
+  const selectableGroupNames = useMemo(
+    () => selectableGroupOptions.map((group) => group.value),
+    [selectableGroupOptions]
+  )
   const globalAutoGroups = useMemo(() => {
-    const available = new Set(availableAutoGroupNames)
+    const available = new Set(selectableGroupNames)
     return (autoGroupsData?.data?.groups || []).filter((group) =>
       available.has(group)
     )
-  }, [autoGroupsData, availableAutoGroupNames])
+  }, [autoGroupsData, selectableGroupNames])
   const globalAutoGroupOptions = useMemo(() => {
     const groupsByValue = new Map(groups.map((group) => [group.value, group]))
     return globalAutoGroups.flatMap((group) => {
@@ -222,7 +226,7 @@ export function ApiKeysMutateDrawer({
         form.reset(
           transformApiKeyToFormDefaults(
             apiKeyData.data,
-            availableAutoGroupNames,
+            selectableGroupNames,
             maxAutoGroups
           )
         )
@@ -249,7 +253,7 @@ export function ApiKeysMutateDrawer({
     apiKeyData,
     apiKeyFetched,
     apiKeyFetching,
-    availableAutoGroupNames,
+    selectableGroupNames,
     maxAutoGroups,
     initializedTarget,
   ])
@@ -257,25 +261,12 @@ export function ApiKeysMutateDrawer({
   const formTarget =
     isUpdate && currentRow ? `update:${currentRow.id}` : 'create'
   const isFormInitialized = initializedTarget === formTarget
-  const selectedGroup = form.watch('group')
-
-  // Correct group after groups load: if the form value is not in available groups, fall back
-  useEffect(() => {
-    if (groups.length === 0) return
-    const currentGroup = selectedGroup
-    if (currentGroup && !groups.some((g) => g.value === currentGroup)) {
-      const fallback =
-        groups.find((g) => g.value === 'default')?.value ??
-        groups[0]?.value ??
-        ''
-      form.setValue('group', fallback)
-      if (currentGroup === 'auto') {
-        form.setValue('auto_groups', [])
-        form.setValue('auto_groups_mode', 'inherit')
-        form.setValue('cross_group_retry', false)
-      }
-    }
-  }, [groups, form, selectedGroup])
+  // The stored key's groups are already filtered against the selectable ones by
+  // transformApiKeyToFormDefaults, so the form never holds a group the requester
+  // may not select and needs no post-load correction.
+  const selectedGroups = form.watch('groups')
+  const useGlobalAuto = form.watch('use_global_auto')
+  const crossGroupEligible = useGlobalAuto || selectedGroups.length >= 2
 
   const onSubmit = async (data: ApiKeyFormValues) => {
     setIsSubmitting(true)
@@ -357,7 +348,6 @@ export function ApiKeysMutateDrawer({
   const quotaPlaceholder = tokensOnly
     ? t('Enter quota in tokens')
     : t('Enter quota in {{currency}}', { currency: currencyLabel })
-  const autoGroupsMode = form.watch('auto_groups_mode')
   const unlimitedQuota = form.watch('unlimited_quota')
 
   return (
@@ -414,76 +404,90 @@ export function ApiKeysMutateDrawer({
 
               <FormField
                 control={form.control}
-                name='group'
+                name='groups'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('Group')}</FormLabel>
+                    <FormDescription>
+                      {t('Choose the groups this API key will try, in order.')}
+                    </FormDescription>
                     <FormControl>
-                      <ApiKeyGroupCombobox
-                        options={groups}
-                        value={field.value}
-                        onValueChange={(group) => {
-                          field.onChange(group)
-                          if (group === 'auto') {
-                            form.setValue('cross_group_retry', true, {
-                              shouldDirty: true,
-                            })
-                            return
-                          }
-                          form.setValue('cross_group_retry', false, {
-                            shouldDirty: true,
-                          })
-                        }}
-                        placeholder={t('Select a group')}
-                      />
+                      {useGlobalAuto ? (
+                        <GlobalAutoOrderPreview
+                          globalOptions={globalAutoGroupOptions}
+                        />
+                      ) : (
+                        <AutoGroupOrderEditor
+                          value={field.value}
+                          options={selectableGroupOptions}
+                          maxCount={maxAutoGroups}
+                          onChange={(nextGroups) => {
+                            // The picker only renders while the global Auto
+                            // toggle is off, so an edit never has to clear it.
+                            const previousGroups = form.getValues('groups')
+                            field.onChange(nextGroups)
+                            // A selection that becomes able to span more than
+                            // one group turns the cross-group switch on, as
+                            // choosing Auto used to; the requester may still
+                            // turn it off. Raising it on every later edit would
+                            // silently undo that choice.
+                            if (
+                              previousGroups.length < 2 &&
+                              nextGroups.length >= 2
+                            ) {
+                              form.setValue('cross_group_retry', true, {
+                                shouldDirty: true,
+                              })
+                            }
+                          }}
+                        />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {selectedGroup === 'auto' && (
+              {backendHasAuto && (
                 <FormField
                   control={form.control}
-                  name='auto_groups'
+                  name='use_global_auto'
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Auto group order')}</FormLabel>
-                      <FormDescription>
-                        {t(
-                          'Choose and order the groups this API key will try.'
-                        )}
-                      </FormDescription>
+                    <FormItem className={sideDrawerSwitchItemClassName()}>
+                      <div className='flex flex-col gap-0.5'>
+                        <FormLabel className='text-sm'>
+                          {t('Use the global Auto order')}
+                        </FormLabel>
+                        <FormDescription className='line-clamp-2 text-xs sm:line-clamp-none'>
+                          {t(
+                            "Tries the administrator's Auto group order instead of a list stored on this key."
+                          )}
+                        </FormDescription>
+                      </div>
                       <FormControl>
-                        <AutoGroupOrderEditor
-                          value={field.value}
-                          mode={autoGroupsMode}
-                          options={groups}
-                          globalOptions={globalAutoGroupOptions}
-                          maxCount={maxAutoGroups}
-                          onChange={(value) => {
-                            form.setValue('auto_groups_mode', value.mode, {
+                        <Switch
+                          checked={!!field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked)
+                            if (!checked) return
+                            // The global order supersedes the explicit list, and
+                            // it can span more than one group.
+                            form.setValue('groups', [], {
                               shouldDirty: true,
-                              shouldValidate: false,
+                              shouldValidate: true,
                             })
-                            form.setValue(
-                              'auto_groups',
-                              value.groups.slice(0, maxAutoGroups),
-                              {
-                                shouldDirty: true,
-                                shouldValidate: true,
-                              }
-                            )
+                            form.setValue('cross_group_retry', true, {
+                              shouldDirty: true,
+                            })
                           }}
                         />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
               )}
 
-              {selectedGroup === 'auto' && (
+              {crossGroupEligible && (
                 <FormField
                   control={form.control}
                   name='cross_group_retry'
