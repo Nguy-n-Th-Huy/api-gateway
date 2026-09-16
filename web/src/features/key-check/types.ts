@@ -66,14 +66,22 @@ export interface KeyCheckResponse {
 export interface KeyUsageLogEntry {
   /** Raw timestamp (seconds). */
   created_at: number
-  /** `common.LogType*` on the backend; labelled with the console's own
-   * log-type vocabulary (`@/features/usage-logs`). */
+  /** `common.LogType*` on the backend, which decides the entry's outcome:
+   * `consume` succeeded, `error` failed. */
   type: number
   model_name: string
   /** Quota units consumed by the request. */
   quota: number
   prompt_tokens: number
   completion_tokens: number
+  /** Cache-read tokens, `0` when the entry recorded none. */
+  cache_tokens: number
+  /** Cache-write tokens, `0` when the entry recorded none. */
+  cache_creation_tokens: number
+  /** The relay endpoint the entry was recorded for, e.g. `/v1/chat/completions`.
+   * Empty for an entry that has none (a refund, or metadata that could not be
+   * read). */
+  request_path: string
   /** Duration in seconds. */
   use_time: number
   is_stream: boolean

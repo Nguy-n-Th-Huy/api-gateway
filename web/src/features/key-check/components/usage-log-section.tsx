@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -113,11 +114,16 @@ export function UsageLogSection(props: UsageLogSectionProps) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('Time')}</TableHead>
-                      <TableHead>{t('Type')}</TableHead>
                       <TableHead>{t('Model')}</TableHead>
-                      <TableHead>{t('Tokens')}</TableHead>
-                      <TableHead>{t('Cost')}</TableHead>
-                      <TableHead>{t('Duration')}</TableHead>
+                      <TableHead>{t('Type')}</TableHead>
+                      <TableHead>{t('Status')}</TableHead>
+                      <TableHead className='text-right'>{t('Input')}</TableHead>
+                      <TableHead className='text-right'>{t('Cache')}</TableHead>
+                      <TableHead className='text-right'>{t('Output')}</TableHead>
+                      <TableHead className='text-right'>{t('Cost')}</TableHead>
+                      <TableHead className='text-right'>
+                        {t('Duration')}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -126,17 +132,43 @@ export function UsageLogSection(props: UsageLogSectionProps) {
                         <TableCell className='whitespace-nowrap'>
                           {row.time}
                         </TableCell>
-                        <TableCell>{t(row.typeLabel)}</TableCell>
-                        <TableCell className='max-w-[12rem] truncate' title={row.modelName}>
+                        <TableCell
+                          className='max-w-[12rem] truncate'
+                          title={row.modelName}
+                        >
                           {row.modelName}
                         </TableCell>
-                        <TableCell className='whitespace-nowrap'>
-                          {row.tokens}
+                        <TableCell>
+                          <StatusBadge
+                            variant='neutral'
+                            label={t(row.typeLabel)}
+                            copyable={false}
+                          />
                         </TableCell>
-                        <TableCell className='whitespace-nowrap'>
+                        <TableCell>
+                          {row.outcome ? (
+                            <StatusBadge
+                              variant={row.outcome.variant}
+                              label={t(row.outcome.label)}
+                              copyable={false}
+                            />
+                          ) : (
+                            <span className='text-muted-foreground'>-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className='text-right tabular-nums'>
+                          {row.inputTokens}
+                        </TableCell>
+                        <TableCell className='text-right tabular-nums'>
+                          {row.cacheTokens}
+                        </TableCell>
+                        <TableCell className='text-right tabular-nums'>
+                          {row.outputTokens}
+                        </TableCell>
+                        <TableCell className='text-right tabular-nums'>
                           {row.cost}
                         </TableCell>
-                        <TableCell className='whitespace-nowrap'>
+                        <TableCell className='text-right tabular-nums'>
                           {row.duration}
                         </TableCell>
                       </TableRow>

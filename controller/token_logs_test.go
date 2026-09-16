@@ -32,7 +32,7 @@ func setupTokenLogsTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func seedTokenLog(t *testing.T, db *gorm.DB, tokenId int, createdAt int64, modelName string, quota int) *model.Log {
+func seedTokenLog(t *testing.T, db *gorm.DB, tokenId int, createdAt int64, modelName string, quota int, other string) *model.Log {
 	t.Helper()
 
 	log := &model.Log{
@@ -50,7 +50,7 @@ func seedTokenLog(t *testing.T, db *gorm.DB, tokenId int, createdAt int64, model
 		TokenId:          tokenId,
 		Group:            "default",
 		Ip:               "203.0.113.9",
-		Other:            `{"model_ratio":1.5}`,
+		Other:            other,
 	}
 	require.NoError(t, db.Create(log).Error)
 	return log
@@ -64,9 +64,9 @@ func seedTwoKeysWithLogs(t *testing.T, db *gorm.DB) (checked *model.Token, other
 	checked = seedToken(t, db, 1, "my-key", "chk1234chk12345678")
 	other = seedToken(t, db, 1, "other-key", "oth1234oth12345678")
 
-	seedTokenLog(t, db, other.Id, 150, "other-model", 999)
-	seedTokenLog(t, db, checked.Id, 100, "old-model", 300)
-	seedTokenLog(t, db, checked.Id, 200, "new-model", 500)
+	seedTokenLog(t, db, other.Id, 150, "other-model", 999, `{"model_ratio":1.5}`)
+	seedTokenLog(t, db, checked.Id, 100, "old-model", 300, `{"model_ratio":1.5}`)
+	seedTokenLog(t, db, checked.Id, 200, "new-model", 500, `{"model_ratio":1.5}`)
 	return checked, other
 }
 
@@ -137,10 +137,56 @@ func TestCheckTokenLogsOmitsIdentityAndInfrastructureFields(t *testing.T) {
 	}
 }
 
+func TestCheckTokenLogsCarriesCacheCountsAndRequestPath(t *testing.T) {
+	db := setupTokenLogsTestDB(t)
+	token := seedToken(t, db, 1, "rich-key", "ric1234ric12345678")
+
+	// Seeded oldest first: the endpoint orders by row id, which follows
+	// insertion order, so this makes the newest entry first in the response.
+	seedTokenLog(t, db, token.Id, 100, "gpt-4o", 600, "")
+	seedTokenLog(t, db, token.Id, 200, "gpt-4o", 700, `{not json`)
+	seedTokenLog(t, db, token.Id, 300, "gpt-4o", 800,
+		`{"model_ratio":1.5,"request_path":"/v1/chat/completions","cache_tokens":86272,"cache_creation_tokens":1024}`)
+	seedTokenLog(t, db, token.Id, 400, "clamped-model", 900,
+		`{"cache_tokens":5000000000,"cache_creation_tokens":-3}`)
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPost, "/api/token/logs",
+		map[string]any{"key": token.Key}, 0)
+	CheckTokenLogs(ctx)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	page := decodeTokenLogsPage(t, recorder)
+	require.Len(t, page.Items, 4)
+
+	clamped := page.Items[0]
+	assert.Equal(t, 2147483647, clamped.CacheTokens, "an oversized upstream count is clamped, never wrapped")
+	assert.Zero(t, clamped.CacheCreationTokens, "a negative upstream count is reported as zero")
+
+	withMetadata := page.Items[1]
+	assert.Equal(t, "/v1/chat/completions", withMetadata.RequestPath)
+	assert.Equal(t, 86272, withMetadata.CacheTokens)
+	assert.Equal(t, 1024, withMetadata.CacheCreationTokens)
+
+	unreadable := page.Items[2]
+	assert.Empty(t, unreadable.RequestPath, "an unreadable metadata blob must not cost the caller its entry")
+	assert.Zero(t, unreadable.CacheTokens)
+	assert.Equal(t, "gpt-4o", unreadable.ModelName, "the rest of the entry survives unreadable metadata")
+	assert.Equal(t, 700, unreadable.Quota)
+
+	missing := page.Items[3]
+	assert.Empty(t, missing.RequestPath)
+	assert.Zero(t, missing.CacheTokens)
+	assert.Zero(t, missing.CacheCreationTokens)
+
+	body := recorder.Body.String()
+	assert.NotContains(t, body, `"other"`)
+	assert.NotContains(t, body, "model_ratio", "the metadata blob stays out even though three of its values are lifted out")
+}
+
 func TestCheckTokenLogsPaginatesAndReportsEveryEntryInTotal(t *testing.T) {
 	db := setupTokenLogsTestDB(t)
 	checked, _ := seedTwoKeysWithLogs(t, db)
-	seedTokenLog(t, db, checked.Id, 300, "newest-model", 700)
+	seedTokenLog(t, db, checked.Id, 300, "newest-model", 700, `{"model_ratio":1.5}`)
 
 	firstCtx, firstRecorder := newAuthenticatedContext(t, http.MethodPost, "/api/token/logs?p=1&page_size=2",
 		map[string]any{"key": checked.Key}, 0)

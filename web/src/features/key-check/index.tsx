@@ -47,7 +47,7 @@ export function KeyCheck() {
 
   return (
     <PublicLayout>
-      <div className='mx-auto flex max-w-3xl flex-col gap-6 py-8'>
+      <div className='mx-auto flex max-w-7xl flex-col gap-6 py-8'>
         <div className='space-y-1'>
           <h1 className='text-2xl font-semibold'>
             {t('Check your API key')}
