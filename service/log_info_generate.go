@@ -65,6 +65,27 @@ func appendRequestPath(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other
 	}
 }
 
+// attachPIIMaskingAdminInfo records the PII guard's effect on the consume log.
+// Only counts and field paths are persisted: the real-to-fake mapping is the
+// sensitive part and must never reach a log.
+func attachPIIMaskingAdminInfo(relayInfo *relaycommon.RelayInfo, other *model.LogOther) {
+	if relayInfo == nil || relayInfo.PIIFilter == nil || other == nil {
+		return
+	}
+	spans := relayInfo.PIIFilter.MaskedSpanCount()
+	if spans <= 0 {
+		return
+	}
+	audit := map[string]any{"masked_spans": spans}
+	if counts := relayInfo.PIIFilter.MaskedEntityCounts(); len(counts) > 0 {
+		audit["entity_counts"] = counts
+	}
+	if fields := relayInfo.PIIFilter.MaskedFieldPaths(); len(fields) > 0 {
+		audit["fields"] = fields
+	}
+	other.SetAdmin("pii_masking", audit)
+}
+
 // AppendRelayLogAdminInfo records relay routing and conversion diagnostics in
 // the admin-only scope shared by successful and failed request logs.
 func AppendRelayLogAdminInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other *model.LogOther) {
@@ -82,6 +103,7 @@ func AppendRelayLogAdminInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo,
 		if relayInfo.ConversionDiagnosticsTruncated() {
 			other.SetAdmin("conversion_diagnostics_truncated", true)
 		}
+		attachPIIMaskingAdminInfo(relayInfo, other)
 	}
 	if common.GetContextKeyBool(ctx, constant.ContextKeyChannelIsMultiKey) {
 		other.SetAdmin("is_multi_key", true)

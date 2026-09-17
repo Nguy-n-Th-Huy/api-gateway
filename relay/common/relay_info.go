@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -79,6 +80,23 @@ type ChannelMeta struct {
 type TokenCountMeta struct {
 	//promptTokens int
 	estimatePromptTokens int
+}
+
+// PIIFilterInfo is the PII guard of one relay request: it masks the body that
+// goes upstream, restores the real values in the response, and reports what it
+// replaced. It is declared next to RelayInfo so the relay handler can record
+// the guard without RelayInfo depending on the guard implementation.
+type PIIFilterInfo interface {
+	// MaskOutboundBody rewrites the body about to be sent upstream.
+	MaskOutboundBody(c *gin.Context, body []byte) ([]byte, error)
+	// NewUnmaskReader wraps the upstream response body.
+	NewUnmaskReader(source io.Reader) io.Reader
+	// MaskedFieldPaths returns the JSON fields that carried masked text.
+	MaskedFieldPaths() []string
+	// MaskedSpanCount returns how many values were replaced.
+	MaskedSpanCount() int
+	// MaskedEntityCounts returns the per-entity-type replacement counts.
+	MaskedEntityCounts() map[string]int
 }
 
 type RelayInfo struct {
@@ -178,6 +196,12 @@ type RelayInfo struct {
 	BillingRequestInput   *billingexpr.RequestInput
 
 	Request dto.Request
+
+	// PIIFilter is the per-request PII guard recorded by the relay handler once
+	// it masked the outbound body. It is nil when the operator left the guard
+	// off, and the response body is wrapped with it as soon as the upstream
+	// response arrives.
+	PIIFilter PIIFilterInfo
 
 	// RequestConversionChain records request format conversions in order, e.g.
 	// ["openai", "openai_responses"] or ["openai", "claude"].

@@ -42,6 +42,22 @@ const defaultSecuritySettings: SecuritySettings = {
   'fetch_setting.allowed_ports': [],
   'fetch_setting.apply_ip_filter_for_domain': false,
   'token_setting.max_user_tokens': 1000,
+  'piiguard.enabled': false,
+  'piiguard.mask_request': true,
+  'piiguard.unmask_response': true,
+  'piiguard.mode': 'pseudonym',
+  'piiguard.placeholder_style': 'typed',
+  'piiguard.token_template': '«{{type}}_{{index}}»',
+  // Write-only: the options API never returns a key ending in "secret".
+  'piiguard.secret': '',
+  'piiguard.max_body_bytes': 1048576,
+  'piiguard.enabled_entity_types': [],
+  'piiguard.disabled_entity_types': [],
+  'piiguard.custom_keywords': [],
+  'piiguard.min_keyword_length': 3,
+  // Stored as raw JSON text; empty means "generated stand-ins only".
+  'piiguard.fakes': '',
+  'piiguard.require_mask_reject': false,
 }
 
 export function SecuritySettings() {

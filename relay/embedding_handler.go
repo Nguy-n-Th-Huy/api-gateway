@@ -57,6 +57,17 @@ func EmbeddingHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *
 		}
 	}
 
+	// An embedding request carries its text as a top level string, so the guard
+	// rewrites the same body shape it already knows from the text relays.
+	piiFilter := service.NewPIIFilter()
+	if piiFilter != nil {
+		jsonData, err = piiFilter.MaskOutboundBody(c, jsonData)
+		if err != nil {
+			return types.NewErrorWithStatusCode(err, types.ErrorCodeConvertRequestFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		}
+		info.PIIFilter = piiFilter
+	}
+
 	logger.LogDebug(c, "converted embedding request body: %s", jsonData)
 	body, closer, err := relaycommon.NewOutboundJSONBody(jsonData)
 	if err != nil {

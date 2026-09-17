@@ -352,6 +352,10 @@ export type OperationsSettings = {
   'perf_metrics_setting.retention_days': number
 }
 
+export type PiiGuardMode = 'pseudonym' | 'redact'
+
+export type PiiGuardPlaceholderStyle = 'typed' | 'template'
+
 export type SecuritySettings = {
   ModelRequestRateLimitEnabled: boolean
   ModelRequestRateLimitCount: number
@@ -370,6 +374,24 @@ export type SecuritySettings = {
   'fetch_setting.allowed_ports': number[]
   'fetch_setting.apply_ip_filter_for_domain': boolean
   'token_setting.max_user_tokens': number
+  'piiguard.enabled': boolean
+  'piiguard.mask_request': boolean
+  'piiguard.unmask_response': boolean
+  'piiguard.mode': PiiGuardMode
+  'piiguard.placeholder_style': PiiGuardPlaceholderStyle
+  'piiguard.token_template': string
+  // Write-only: the options API never returns a key ending in "secret", so the
+  // field always starts empty and an empty value keeps the stored seed.
+  'piiguard.secret': string
+  'piiguard.max_body_bytes': number
+  'piiguard.enabled_entity_types': string[]
+  'piiguard.disabled_entity_types': string[]
+  'piiguard.custom_keywords': string[]
+  // Nested objects are stored as their raw JSON text, so the section can edit
+  // them in a JSON textarea without losing unknown keys.
+  'piiguard.fakes': string
+  'piiguard.min_keyword_length': number
+  'piiguard.require_mask_reject': boolean
 }
 
 export type UpstreamChannel = {

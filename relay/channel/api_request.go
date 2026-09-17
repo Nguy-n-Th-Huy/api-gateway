@@ -553,6 +553,20 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 		c.Set(common2.UpstreamRequestIdKey, upID)
 	}
 
+	// Restore the real values behind the PII placeholders this request sent
+	// upstream, before any adaptor reads the body. Wrapping here, rather than in
+	// each adaptor, is what keeps streaming and non-streaming formats on the
+	// same rule.
+	if info.PIIFilter != nil && resp.Body != nil {
+		resp.Body = struct {
+			io.Reader
+			io.Closer
+		}{
+			Reader: info.PIIFilter.NewUnmaskReader(resp.Body),
+			Closer: resp.Body,
+		}
+	}
+
 	_ = req.Body.Close()
 	_ = c.Request.Body.Close()
 	return resp, nil

@@ -176,6 +176,17 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 			}
 		}
 
+		// Mask PII last, so the masked body is exactly what goes upstream and an
+		// upstream error can never echo an unmasked value back.
+		piiFilter := service.NewPIIFilter()
+		if piiFilter != nil {
+			jsonData, err = piiFilter.MaskOutboundBody(c, jsonData)
+			if err != nil {
+				return types.NewErrorWithStatusCode(err, types.ErrorCodeConvertRequestFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+			}
+			info.PIIFilter = piiFilter
+		}
+
 		logger.LogDebug(c, "text request body: %s", jsonData)
 
 		body, closer, err := relaycommon.NewOutboundJSONBody(jsonData)

@@ -230,6 +230,9 @@ docker run --name new-api -d --restart always \
 - 🚧 **OpenAI Compatible ⇄ OpenAI Responses** - In development
 - 🔄 **Thinking-to-content functionality**
 
+**Privacy:**
+- 🛡️ [PII Guard](./docs/pii-guard.md) - Mask PII locally before it reaches an upstream provider, and restore real values in the response
+
 **Reasoning Effort Support:**
 
 <details>

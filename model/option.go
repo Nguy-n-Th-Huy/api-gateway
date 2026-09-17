@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/performance_setting"
+	"github.com/QuantumNous/new-api/setting/piiguard_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"gorm.io/gorm"
@@ -200,6 +201,9 @@ func validateOptionValue(key string, value string) error {
 	if key == operation_setting.ToolPriceOptionKey {
 		return operation_setting.ValidateToolPricesJSON(value)
 	}
+	if strings.HasPrefix(key, piiguard_setting.SettingsKeyPrefix) {
+		return piiguard_setting.ValidateOptionValue(key, value)
+	}
 	if key == operation_setting.ChannelTestConcurrencyOptionKey {
 		return operation_setting.ValidateChannelTestConcurrency(value)
 	}
@@ -304,6 +308,12 @@ func updateOptionMap(key string, value string) (err error) {
 		delete(common.OptionMap, key)
 		common.OptionMapRWMutex.Unlock()
 		return nil
+	}
+	// The server address is free text in the admin form, and every consumer
+	// builds absolute URLs from it, so it is completed into a base URL before
+	// it reaches the option map, the in-memory setting, or any reader.
+	if key == "ServerAddress" {
+		value = system_setting.NormalizeServerAddress(value)
 	}
 	common.OptionMapRWMutex.Lock()
 	defer common.OptionMapRWMutex.Unlock()

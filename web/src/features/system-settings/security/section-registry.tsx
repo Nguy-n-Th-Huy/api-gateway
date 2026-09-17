@@ -22,6 +22,7 @@ import { SSRFSection } from '../request-limits/ssrf-section'
 import { TokenLimitSection } from '../request-limits/token-limit-section'
 import type { SecuritySettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { PiiGuardSection } from './pii-guard-section'
 
 const SECURITY_SECTIONS = [
   {
@@ -86,6 +87,34 @@ const SECURITY_SECTIONS = [
         defaultValues={{
           'token_setting.max_user_tokens':
             settings['token_setting.max_user_tokens'],
+        }}
+      />
+    ),
+  },
+  {
+    id: 'pii-guard',
+    titleKey: 'PII Guard',
+    build: (settings: SecuritySettings) => (
+      <PiiGuardSection
+        defaultValues={{
+          'piiguard.enabled': settings['piiguard.enabled'],
+          'piiguard.mask_request': settings['piiguard.mask_request'],
+          'piiguard.unmask_response': settings['piiguard.unmask_response'],
+          'piiguard.mode': settings['piiguard.mode'],
+          'piiguard.placeholder_style': settings['piiguard.placeholder_style'],
+          'piiguard.token_template': settings['piiguard.token_template'],
+          'piiguard.secret': settings['piiguard.secret'],
+          'piiguard.max_body_bytes': settings['piiguard.max_body_bytes'],
+          'piiguard.enabled_entity_types':
+            settings['piiguard.enabled_entity_types'],
+          'piiguard.disabled_entity_types':
+            settings['piiguard.disabled_entity_types'],
+          'piiguard.custom_keywords': settings['piiguard.custom_keywords'],
+          'piiguard.min_keyword_length':
+            settings['piiguard.min_keyword_length'],
+          'piiguard.fakes': settings['piiguard.fakes'],
+          'piiguard.require_mask_reject':
+            settings['piiguard.require_mask_reject'],
         }}
       />
     ),
